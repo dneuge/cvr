@@ -100,6 +100,17 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFormatChanged(BMDVideoInputFo
     return S_OK;
 };
 
+inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
+{
+    // http://en.wikipedia.org/wiki/YUV#Y.27UV444_to_RGB888_conversion
+    // integer version
+    unsigned char *rgb = new unsigned char[3];
+    rgb[0] = y + cr + (cr >> 2) + (cr >> 3) + (cr >> 5);
+    rgb[1] = y - ((cb >> 2) + (cb >> 4) + (cb >> 5)) - ((cr >> 1) + (cr >> 3) + (cr >> 4) + (cr >> 5));
+    rgb[2] = y + cb + (cb >> 1) + (cb >> 2) + (cb >> 6);
+    return rgb;
+}
+
 HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
     // drop frame if previous call is still being processed
@@ -110,11 +121,57 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
         return S_OK;
     }
     
-    // DEBUG: just increment dummy color variable
-    z = (z + 1) % 256;
+    long width = videoFrame->GetWidth();
+    long height = videoFrame->GetHeight();
+    long rowBytes = videoFrame->GetRowBytes();
+    BMDPixelFormat pixelFormat = videoFrame->GetPixelFormat();
+    printf("%i x %i, row bytes %i, pixel format %i\n", width, height, rowBytes, pixelFormat);
     
-    // ask Qt to repaint the widget optimized
-    update();
+    if (pixelFormat != bmdFormat8BitYUV)
+    {
+        std::cout << "unexpected pixel format, cannot decode\n";
+    }
+    else
+    {
+        image = QImage(width, height, QImage::Format_RGB32);
+
+        unsigned char *rowBuffer = new unsigned char[rowBytes];
+
+        if (videoFrame->GetBytes((void**) &rowBuffer) != S_OK)
+        {
+            std::cout << "failed to fill buffer\n";
+        }
+        else
+        {
+            for (long y=0; y<height; y++)
+            {
+                long widthHalf = width/2;
+                for (long xHalf=0; xHalf<widthHalf; xHalf++)
+                {
+                    unsigned char cb0 = rowBuffer[y*rowBytes + xHalf*4 + 0];
+                    unsigned char y0  = rowBuffer[y*rowBytes + xHalf*4 + 1];
+                    unsigned char cr0 = rowBuffer[y*rowBytes + xHalf*4 + 2];
+                    unsigned char y1  = rowBuffer[y*rowBytes + xHalf*4 + 3];
+                    
+                    // http://en.wikipedia.org/wiki/YUV#Y.27UV444_to_RGB888_conversion
+                    // integer version
+                    char convCr0 = cr0 - 128;
+                    char convCb0 = cb0 - 128;
+                    unsigned char *rgb0 = onePixelYCrCbToRGB(y0, convCr0, convCb0);
+                    unsigned char *rgb1 = onePixelYCrCbToRGB(y1, convCr0, convCb0);
+                    
+                    image.setPixel(xHalf * 2,     y, qRgb(rgb0[0], rgb0[1], rgb0[2]));
+                    image.setPixel(xHalf * 2 + 1, y, qRgb(rgb1[0], rgb1[1], rgb1[2]));
+                    
+                    delete rgb0;
+                    delete rgb1;
+                }
+            }
+        }
+
+        // ask Qt to repaint the widget optimized
+        update();
+    }
     
     // we are ready for next frame
     frameAcceptanceMutex.unlock();
@@ -122,7 +179,12 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
 
 void RenderingTest::paintEvent(QPaintEvent *event)
 {
+    frameAcceptanceMutex.lock();
+    
     QPainter painter(this);
+    painter.drawImage(0, 0, image);
+    
+    /*
     painter.setPen(palette().dark().color());
     painter.setBrush(Qt::NoBrush);
     
@@ -134,6 +196,9 @@ void RenderingTest::paintEvent(QPaintEvent *event)
             painter.drawPoint(x, y);
         }
     }
+    */
+    
+    frameAcceptanceMutex.unlock();
 }
 
 void RenderingTest::acceptNewImage()

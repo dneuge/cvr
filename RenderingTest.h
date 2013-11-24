@@ -5,6 +5,7 @@
 
 #include <QWidget>
 #include <QMutex>
+#include <QImage>
 
 class RenderingTest : public QWidget, public IDeckLinkInputCallback
 {
@@ -26,6 +27,7 @@ class RenderingTest : public QWidget, public IDeckLinkInputCallback
         int refCount;
         QMutex refCountMutex;
         QMutex frameAcceptanceMutex;
+        QImage image;
         
     private slots:
         void acceptNewImage();

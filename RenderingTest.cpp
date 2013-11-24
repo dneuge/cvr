@@ -8,9 +8,56 @@
 // FIXME: that is very dirty but how else can we tell NetBeans to include that file? unfortunately it's not a lib
 #include "../../Downloads/Blackmagic DeckLink SDK 9.7.7/Linux/include/DeckLinkAPIDispatch.cpp"
 
+inline unsigned char clampRGB(int x)
+{
+    if (x < 0)
+    {
+        return 0;
+    }
+    
+    if (x > 255)
+    {
+        return 255;
+    }
+    
+    return x;
+}
+
 RenderingTest::RenderingTest(){
     z = 0;
     
+    // pre-calculate YCrCb conversion table
+    std::cout << "pre-calculating color space conversion table, wait";
+    lookupTableYCrCbToR = new unsigned char**[256];
+    lookupTableYCrCbToG = new unsigned char**[256];
+    lookupTableYCrCbToB = new unsigned char**[256];
+    for (unsigned int y = 0; y < 256; y++) {
+        std::cout << ".";
+        std::cout.flush();
+        lookupTableYCrCbToR[y] = new unsigned char*[256];
+        lookupTableYCrCbToG[y] = new unsigned char*[256];
+        lookupTableYCrCbToB[y] = new unsigned char*[256];
+        for (unsigned int cr0 = 0; cr0 < 256; cr0++) {
+            lookupTableYCrCbToR[y][cr0] = new unsigned char[256];
+            lookupTableYCrCbToG[y][cr0] = new unsigned char[256];
+            lookupTableYCrCbToB[y][cr0] = new unsigned char[256];
+            for (unsigned int cb0 = 0; cb0 < 256; cb0++) {
+                char convCr0 = cr0 - 128;
+                char convCb0 = cb0 - 128;
+                
+                unsigned char r = clampRGB(round((double) y + 1.402 * convCr0));
+                unsigned char g = clampRGB(round((double) y - 0.344 * convCb0 - 0.714 * convCr0));
+                unsigned char b = clampRGB(round((double) y + 1.772 * convCb0));
+                
+                lookupTableYCrCbToR[y][cr0][cb0] = r;
+                lookupTableYCrCbToG[y][cr0][cb0] = g;
+                lookupTableYCrCbToB[y][cr0][cb0] = b;
+            }
+        }
+    }
+    std::cout << " done\n";
+    
+    // initialize DeckLink API
     IDeckLink *deckLink;
     IDeckLinkInput *deckLinkInput;
     
@@ -111,21 +158,6 @@ inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
     return rgb;
 }
 
-inline unsigned char clampRGB(int x)
-{
-    if (x < 0)
-    {
-        return 0;
-    }
-    
-    if (x > 255)
-    {
-        return 255;
-    }
-    
-    return x;
-}
-
 HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
     // drop frame if previous call is still being processed
@@ -168,8 +200,10 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
                     unsigned char cr0 = rowBuffer[y*rowBytes + xHalf*4 + 2];
                     unsigned char y1  = rowBuffer[y*rowBytes + xHalf*4 + 3];
                     
+                    /*
                     char convCr0 = cr0 - 128;
                     char convCb0 = cb0 - 128;
+                    */
                     
                     // http://en.wikipedia.org/wiki/YUV#Y.27UV444_to_RGB888_conversion
                     /*
@@ -184,6 +218,7 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
                     delete rgb1;
                     */
                     
+                    /*
                     int r0 = clampRGB(round((double) y0 + 1.402 * convCr0));
                     int g0 = clampRGB(round((double) y0 - 0.344 * convCb0 - 0.714 * convCr0));
                     int b0 = clampRGB(round((double) y0 + 1.772 * convCb0));
@@ -194,7 +229,10 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
                     
                     image.setPixel(xHalf * 2,     y, qRgb(r0, g0, b0));
                     image.setPixel(xHalf * 2 + 1, y, qRgb(r1, g1, b1));
+                    */
                     
+                    image.setPixel(xHalf * 2,     y, qRgb(lookupTableYCrCbToR[y0][cr0][cb0], lookupTableYCrCbToG[y0][cr0][cb0], lookupTableYCrCbToB[y0][cr0][cb0]));
+                    image.setPixel(xHalf * 2 + 1, y, qRgb(lookupTableYCrCbToR[y1][cr0][cb0], lookupTableYCrCbToG[y1][cr0][cb0], lookupTableYCrCbToB[y1][cr0][cb0]));
                 }
             }
         }

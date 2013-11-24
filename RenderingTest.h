@@ -23,6 +23,10 @@ class RenderingTest : public QWidget, public IDeckLinkInputCallback
         void paintEvent(QPaintEvent *event);
     
     private:
+        unsigned char ***lookupTableYCrCbToR;
+        unsigned char ***lookupTableYCrCbToG;
+        unsigned char ***lookupTableYCrCbToB;
+        
         int z;
         int refCount;
         QMutex refCountMutex;

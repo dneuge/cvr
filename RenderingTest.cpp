@@ -111,6 +111,21 @@ inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
     return rgb;
 }
 
+inline unsigned char clampRGB(int x)
+{
+    if (x < 0)
+    {
+        return 0;
+    }
+    
+    if (x > 255)
+    {
+        return 255;
+    }
+    
+    return x;
+}
+
 HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
     // drop frame if previous call is still being processed
@@ -153,10 +168,12 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
                     unsigned char cr0 = rowBuffer[y*rowBytes + xHalf*4 + 2];
                     unsigned char y1  = rowBuffer[y*rowBytes + xHalf*4 + 3];
                     
-                    // http://en.wikipedia.org/wiki/YUV#Y.27UV444_to_RGB888_conversion
-                    // integer version
                     char convCr0 = cr0 - 128;
                     char convCb0 = cb0 - 128;
+                    
+                    // http://en.wikipedia.org/wiki/YUV#Y.27UV444_to_RGB888_conversion
+                    /*
+                    // integer version
                     unsigned char *rgb0 = onePixelYCrCbToRGB(y0, convCr0, convCb0);
                     unsigned char *rgb1 = onePixelYCrCbToRGB(y1, convCr0, convCb0);
                     
@@ -165,6 +182,19 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
                     
                     delete rgb0;
                     delete rgb1;
+                    */
+                    
+                    int r0 = clampRGB(round((double) y0 + 1.402 * convCr0));
+                    int g0 = clampRGB(round((double) y0 - 0.344 * convCb0 - 0.714 * convCr0));
+                    int b0 = clampRGB(round((double) y0 + 1.772 * convCb0));
+                    
+                    int r1 = clampRGB(round((double) y1 + 1.402 * convCr0));
+                    int g1 = clampRGB(round((double) y1 - 0.344 * convCb0 - 0.714 * convCr0));
+                    int b1 = clampRGB(round((double) y1 + 1.772 * convCb0));
+                    
+                    image.setPixel(xHalf * 2,     y, qRgb(r0, g0, b0));
+                    image.setPixel(xHalf * 2 + 1, y, qRgb(r1, g1, b1));
+                    
                 }
             }
         }

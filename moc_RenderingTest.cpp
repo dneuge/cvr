@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'RenderingTest.h'
 **
-** Created: Sun Nov 24 19:21:54 2013
+** Created: Sun Nov 24 21:12:19 2013
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.4)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -76,6 +76,8 @@ void *RenderingTest::qt_metacast(const char *_clname)
     if (!_clname) return 0;
     if (!strcmp(_clname, qt_meta_stringdata_RenderingTest))
         return static_cast<void*>(const_cast< RenderingTest*>(this));
+    if (!strcmp(_clname, "IDeckLinkInputCallback"))
+        return static_cast< IDeckLinkInputCallback*>(const_cast< RenderingTest*>(this));
     return QWidget::qt_metacast(_clname);
 }
 

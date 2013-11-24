@@ -1,20 +1,31 @@
 #ifndef RENDERINGTEST_H
 #define	RENDERINGTEST_H
 
-#include <QWidget>
+#include "DeckLinkAPI.h"
 
-class RenderingTest : public QWidget
+#include <QWidget>
+#include <QMutex>
+
+class RenderingTest : public QWidget, public IDeckLinkInputCallback
 {
     Q_OBJECT
     
     public:
         RenderingTest();
+        virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID *ppv) { return E_NOINTERFACE; }
+        virtual ULONG STDMETHODCALLTYPE AddRef(void);
+        virtual ULONG STDMETHODCALLTYPE  Release(void);
+        virtual HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(BMDVideoInputFormatChangedEvents, IDeckLinkDisplayMode*, BMDDetectedVideoInputFormatFlags);
+        virtual HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(IDeckLinkVideoInputFrame*, IDeckLinkAudioInputPacket*);
     
     protected:
         void paintEvent(QPaintEvent *event);
     
     private:
         int z;
+        int refCount;
+        QMutex refCountMutex;
+        QMutex frameAcceptanceMutex;
         
     private slots:
         void acceptNewImage();

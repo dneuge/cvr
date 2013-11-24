@@ -6,6 +6,8 @@
 #include <QWidget>
 #include <QMutex>
 #include <QImage>
+#include <QBuffer>
+#include <QAudioOutput>
 
 class RenderingTest : public QWidget, public IDeckLinkInputCallback
 {
@@ -27,11 +29,17 @@ class RenderingTest : public QWidget, public IDeckLinkInputCallback
         unsigned char ***lookupTableYCrCbToG;
         unsigned char ***lookupTableYCrCbToB;
         
+        int audioChannels;
+        int audioSampleDepth;
+        
         int z;
         int refCount;
         QMutex refCountMutex;
         QMutex frameAcceptanceMutex;
+        QMutex audioAcceptanceMutex;
         QImage image;
+        QBuffer audioBuffer;
+        QAudioOutput *audioOutput;
         
     private slots:
         void acceptNewImage();

@@ -42,6 +42,9 @@
       </toolsSet>
       <qt>
         <modules>core gui widgets</modules>
+        <defs>
+          <Elem>QT += multimedia</Elem>
+        </defs>
       </qt>
       <compileType>
         <ccTool>

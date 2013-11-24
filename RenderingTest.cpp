@@ -57,6 +57,27 @@ RenderingTest::RenderingTest(){
     }
     std::cout << " done\n";
     
+    /*
+    // open audio buffer
+    audioBuffer.open(QIODevice::ReadWrite);
+    
+    // setup Qt audio playback
+    QAudioFormat format;
+    format.setFrequency(48000);
+    format.setByteOrder(QAudioFormat::LittleEndian);
+    format.setChannels(2);
+    format.setSampleSize(16);
+    format.setSampleType(QAudioFormat::UnSignedInt);
+    format.setCodec("audio/pcm");
+    
+    QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+    if (!info.isFormatSupported(format)) {
+        std::cout << "unable to setup audio playback, unsupported format\n";
+        return;
+    }
+    audioOutput = new QAudioOutput(format, this);
+    */
+    
     // initialize DeckLink API
     IDeckLink *deckLink;
     IDeckLinkInput *deckLinkInput;
@@ -64,6 +85,9 @@ RenderingTest::RenderingTest(){
     BMDDisplayMode displayMode = bmdModeHD720p5994;
     BMDPixelFormat pixelFormat = bmdFormat8BitYUV;
     BMDVideoInputFlags inputFlags = 0;
+    BMDAudioSampleRate audioSampleRate = bmdAudioSampleRate48kHz;
+    audioChannels = 2; // stereo
+    audioSampleDepth = 16; // 16 bit
     
     // get iterator
     IDeckLinkIterator *deckLinkIterator = CreateDeckLinkIteratorInstance();
@@ -106,6 +130,13 @@ RenderingTest::RenderingTest(){
         return;
     }
     
+    // configure audio stream
+    if (deckLinkInput->EnableAudioInput(audioSampleRate, audioSampleDepth, audioChannels) != S_OK)
+    {
+		std::cout << "could not configure audio stream\n";
+        return;
+    }
+    
     // start streaming
     if(deckLinkInput->StartStreams() != S_OK)
     {
@@ -114,6 +145,13 @@ RenderingTest::RenderingTest(){
     }
         
     std::cout << "initialized\n";
+    
+    /*
+    // start audio playback slightly delayed
+    sleep(1);
+    std::cout << "starting audio playback\n";
+    audioOutput->start(&audioBuffer);
+    */
 }
 
 /*
@@ -160,6 +198,22 @@ inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
 
 HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
+    /*
+    // audio frames should always be appended
+    audioAcceptanceMutex.lock();
+    char *audioBytes;
+    if (audioPacket->GetBytes((void**) &audioBytes) != S_OK)
+    {
+        std::cout << "error getting audio packet data\n";
+    }
+    else
+    {
+        long audioLength = audioPacket->GetSampleFrameCount() * audioChannels * (audioSampleDepth / 8);
+        audioBuffer.write(audioBytes, audioLength);
+    }
+    audioAcceptanceMutex.unlock();
+    */
+    
     // drop frame if previous call is still being processed
     if (!frameAcceptanceMutex.tryLock()) {
         // DEBUG: show that we are dropping frames

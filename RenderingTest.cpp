@@ -23,26 +23,18 @@ inline unsigned char clampRGB(int x)
     return x;
 }
 
-RenderingTest::RenderingTest(){
-    z = 0;
+DataCallback::DataCallback(QImage** image, QMutex* frameDrawMutex){
+    this->frameDrawMutex = frameDrawMutex;
+    this->image = image;
     
     // pre-calculate YCrCb conversion table
     std::cout << "pre-calculating color space conversion table, wait";
-    lookupTableYCrCbToR = new unsigned char**[256];
-    lookupTableYCrCbToG = new unsigned char**[256];
-    lookupTableYCrCbToB = new unsigned char**[256];
     lookupTableYCrCbToQRgb = new QRgb**[256];
     for (unsigned int y = 0; y < 256; y++) {
         std::cout << ".";
         std::cout.flush();
-        lookupTableYCrCbToR[y] = new unsigned char*[256];
-        lookupTableYCrCbToG[y] = new unsigned char*[256];
-        lookupTableYCrCbToB[y] = new unsigned char*[256];
         lookupTableYCrCbToQRgb[y] = new QRgb*[256];
         for (unsigned int cr0 = 0; cr0 < 256; cr0++) {
-            lookupTableYCrCbToR[y][cr0] = new unsigned char[256];
-            lookupTableYCrCbToG[y][cr0] = new unsigned char[256];
-            lookupTableYCrCbToB[y][cr0] = new unsigned char[256];
             lookupTableYCrCbToQRgb[y][cr0] = new QRgb[256];
             for (unsigned int cb0 = 0; cb0 < 256; cb0++) {
                 char convCr0 = cr0 - 128;
@@ -51,10 +43,6 @@ RenderingTest::RenderingTest(){
                 unsigned char r = clampRGB(round((double) y + 1.402 * convCr0));
                 unsigned char g = clampRGB(round((double) y - 0.344 * convCb0 - 0.714 * convCr0));
                 unsigned char b = clampRGB(round((double) y + 1.772 * convCb0));
-                
-                lookupTableYCrCbToR[y][cr0][cb0] = r;
-                lookupTableYCrCbToG[y][cr0][cb0] = g;
-                lookupTableYCrCbToB[y][cr0][cb0] = b;
                 
                 lookupTableYCrCbToQRgb[y][cr0][cb0] = qRgb(r, g, b);
             }
@@ -168,7 +156,7 @@ HRESULT STDMETHODCALLTYPE RenderingTest::QueryInterface(REFIID iid, LPVOID *ppv)
 }
 */
 
-ULONG STDMETHODCALLTYPE RenderingTest::AddRef(void)
+ULONG STDMETHODCALLTYPE DataCallback::AddRef(void)
 {
     refCountMutex.lock();
     ULONG myRefCount = refCount++;
@@ -177,7 +165,7 @@ ULONG STDMETHODCALLTYPE RenderingTest::AddRef(void)
     return myRefCount;
 };
 
-ULONG STDMETHODCALLTYPE RenderingTest::Release(void)
+ULONG STDMETHODCALLTYPE DataCallback::Release(void)
 {
     refCountMutex.lock();
     ULONG myRefCount = refCount--;
@@ -186,7 +174,7 @@ ULONG STDMETHODCALLTYPE RenderingTest::Release(void)
     return myRefCount;
 };
 
-HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFormatChanged(BMDVideoInputFormatChangedEvents, IDeckLinkDisplayMode*, BMDDetectedVideoInputFormatFlags)
+HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFormatChanged(BMDVideoInputFormatChangedEvents, IDeckLinkDisplayMode*, BMDDetectedVideoInputFormatFlags)
 {
     std::cout << "video input format changed\n";
     return S_OK;
@@ -203,7 +191,7 @@ inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
     return rgb;
 }
 
-HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
+HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
     /*
     // audio frames should always be appended
@@ -247,7 +235,7 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
     }
     else
     {
-        QImage newImage = QImage(width, height, QImage::Format_RGB32);
+        QImage *newImage = new QImage(width, height, QImage::Format_RGB32);
 
         unsigned char *rowBuffer = new unsigned char[rowBytes];
 
@@ -301,31 +289,44 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
                     
                     //newImage.setPixel(xHalf * 2,     y, qRgb(lookupTableYCrCbToR[y0][cr0][cb0], lookupTableYCrCbToG[y0][cr0][cb0], lookupTableYCrCbToB[y0][cr0][cb0]));
                     //newImage.setPixel(xHalf * 2 + 1, y, qRgb(lookupTableYCrCbToR[y1][cr0][cb0], lookupTableYCrCbToG[y1][cr0][cb0], lookupTableYCrCbToB[y1][cr0][cb0]));
-                    newImage.setPixel(xHalf * 2,     y, lookupTableYCrCbToQRgb[y0][cr0][cb0]);
-                    newImage.setPixel(xHalf * 2 + 1, y, lookupTableYCrCbToQRgb[y1][cr0][cb0]);
+                    newImage->setPixel(xHalf * 2,     y, lookupTableYCrCbToQRgb[y0][cr0][cb0]);
+                    newImage->setPixel(xHalf * 2 + 1, y, lookupTableYCrCbToQRgb[y1][cr0][cb0]);
                 }
             }
         }
         
         // switch image
-        frameDrawMutex.lock();
-        image = newImage;
-        frameDrawMutex.unlock();
+        frameDrawMutex->lock();
+        delete *image;
+        *image = newImage;
+        frameDrawMutex->unlock();
         
         // ask Qt to repaint the widget optimized
-        update();
+        emit imageUpdated();
     }
     
     // we are ready for next frame
     frameAcceptanceMutex.unlock();
 };
 
+RenderingTest::RenderingTest()
+{
+    image = new QImage(1280, 720, QImage::Format_RGB32);
+    
+    DataCallback *dataCallback = new DataCallback(&image, &frameDrawMutex);
+    dataCallback->moveToThread(&dataCallbackThread);
+    
+    connect(dataCallback, SIGNAL(imageUpdated()), this, SLOT(update()));
+    
+    dataCallbackThread.start();
+}
+
 void RenderingTest::paintEvent(QPaintEvent *event)
 {
     frameDrawMutex.lock();
     
     QPainter painter(this);
-    painter.drawImage(0, 0, image);
+    painter.drawImage(0, 0, *image);
     painter.end();
     
     /*

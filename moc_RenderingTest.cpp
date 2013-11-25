@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'RenderingTest.h'
 **
-** Created: Mon Nov 25 23:52:28 2013
+** Created: Tue Nov 26 00:04:17 2013
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.4)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,7 +23,7 @@ static const uint qt_meta_data_DataCallback[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       1,   14, // methods
+       2,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -33,11 +33,15 @@ static const uint qt_meta_data_DataCallback[] = {
  // signals: signature, parameters, type, tag, flags
       14,   13,   13,   13, 0x05,
 
+ // slots: signature, parameters, type, tag, flags
+      29,   13,   13,   13, 0x0a,
+
        0        // eod
 };
 
 static const char qt_meta_stringdata_DataCallback[] = {
     "DataCallback\0\0imageUpdated()\0"
+    "toggleCapture()\0"
 };
 
 void DataCallback::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -47,6 +51,7 @@ void DataCallback::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         DataCallback *_t = static_cast<DataCallback *>(_o);
         switch (_id) {
         case 0: _t->imageUpdated(); break;
+        case 1: _t->toggleCapture(); break;
         default: ;
         }
     }
@@ -87,9 +92,9 @@ int DataCallback::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 1)
+        if (_id < 2)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 1;
+        _id -= 2;
     }
     return _id;
 }
@@ -105,33 +110,25 @@ static const uint qt_meta_data_RenderingTest[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       1,   14, // methods
+       0,    0, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
        0,       // signalCount
 
- // slots: signature, parameters, type, tag, flags
-      15,   14,   14,   14, 0x08,
-
        0        // eod
 };
 
 static const char qt_meta_stringdata_RenderingTest[] = {
-    "RenderingTest\0\0acceptNewImage()\0"
+    "RenderingTest\0"
 };
 
 void RenderingTest::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    if (_c == QMetaObject::InvokeMetaMethod) {
-        Q_ASSERT(staticMetaObject.cast(_o));
-        RenderingTest *_t = static_cast<RenderingTest *>(_o);
-        switch (_id) {
-        case 0: _t->acceptNewImage(); break;
-        default: ;
-        }
-    }
+    Q_UNUSED(_o);
+    Q_UNUSED(_id);
+    Q_UNUSED(_c);
     Q_UNUSED(_a);
 }
 
@@ -166,11 +163,6 @@ int RenderingTest::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     _id = QWidget::qt_metacall(_c, _id, _a);
     if (_id < 0)
         return _id;
-    if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 1)
-            qt_static_metacall(this, _c, _id, _a);
-        _id -= 1;
-    }
     return _id;
 }
 QT_END_MOC_NAMESPACE

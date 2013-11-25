@@ -18,8 +18,8 @@ MainWindow::MainWindow()
     
     
     
-    QAction *actionAcceptNewImage = new QAction(this);
-    actionAcceptNewImage->setShortcut(QKeySequence(Qt::Key_Space));
-    connect(actionAcceptNewImage, SIGNAL(triggered()), renderingTest, SLOT(acceptNewImage()));
-    addAction(actionAcceptNewImage);
+    QAction *actionToggleCapture = new QAction(this);
+    actionToggleCapture->setShortcut(QKeySequence(Qt::Key_Space));
+    connect(actionToggleCapture, SIGNAL(triggered()), renderingTest->dataCallback, SLOT(toggleCapture()));
+    addAction(actionToggleCapture);
 }

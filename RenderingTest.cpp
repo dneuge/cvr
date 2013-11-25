@@ -26,6 +26,7 @@ inline unsigned char clampRGB(int x)
 DataCallback::DataCallback(QImage** image, QMutex* frameDrawMutex){
     this->frameDrawMutex = frameDrawMutex;
     this->image = image;
+    skipFrames = false;
     
     // pre-calculate YCrCb conversion table
     std::cout << "pre-calculating color space conversion table, wait";
@@ -209,8 +210,8 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     audioAcceptanceMutex.unlock();
     */
     
-    // discard null video frame (it may happen that we only got audio)
-    if (videoFrame == 0)
+    // discard null (it may happen that we only got audio) or ignored video frames
+    if ((videoFrame == 0) || skipFrames)
     {
         return S_OK;
     }
@@ -309,11 +310,18 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     frameAcceptanceMutex.unlock();
 };
 
+void DataCallback::toggleCapture()
+{
+    frameAcceptanceMutex.lock();
+    skipFrames = !skipFrames;
+    frameAcceptanceMutex.unlock();
+}
+
 RenderingTest::RenderingTest()
 {
     image = new QImage(1280, 720, QImage::Format_RGB32);
     
-    DataCallback *dataCallback = new DataCallback(&image, &frameDrawMutex);
+    dataCallback = new DataCallback(&image, &frameDrawMutex);
     dataCallback->moveToThread(&dataCallbackThread);
     
     connect(dataCallback, SIGNAL(imageUpdated()), this, SLOT(update()));
@@ -344,8 +352,4 @@ void RenderingTest::paintEvent(QPaintEvent *event)
     */
     
     frameDrawMutex.unlock();
-}
-
-void RenderingTest::acceptNewImage()
-{
 }

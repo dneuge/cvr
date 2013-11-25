@@ -28,6 +28,8 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         int audioChannels;
         int audioSampleDepth;
         
+        bool skipFrames;
+        
         int refCount;
         QMutex refCountMutex;
         QMutex frameAcceptanceMutex;
@@ -36,6 +38,9 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         QImage **image;
         //QBuffer audioBuffer;
         //QAudioOutput *audioOutput;
+    
+    public slots:
+        void toggleCapture();
     
     signals:
         void imageUpdated();
@@ -47,6 +52,7 @@ class RenderingTest : public QWidget
     
     public:
         RenderingTest();
+        DataCallback *dataCallback;
     
     protected:
         void paintEvent(QPaintEvent *event);
@@ -55,9 +61,6 @@ class RenderingTest : public QWidget
         QImage *image;
         QMutex frameDrawMutex;
         QThread dataCallbackThread;
-        
-    private slots:
-        void acceptNewImage();
 };
 
 #endif	/* RENDERINGTEST_H */

@@ -28,6 +28,7 @@ class RenderingTest : public QWidget, public IDeckLinkInputCallback
         unsigned char ***lookupTableYCrCbToR;
         unsigned char ***lookupTableYCrCbToG;
         unsigned char ***lookupTableYCrCbToB;
+        QRgb ***lookupTableYCrCbToQRgb;
         
         int audioChannels;
         int audioSampleDepth;
@@ -36,6 +37,7 @@ class RenderingTest : public QWidget, public IDeckLinkInputCallback
         int refCount;
         QMutex refCountMutex;
         QMutex frameAcceptanceMutex;
+        QMutex frameDrawMutex;
         QMutex audioAcceptanceMutex;
         QImage image;
         QBuffer audioBuffer;

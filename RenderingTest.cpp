@@ -31,16 +31,19 @@ RenderingTest::RenderingTest(){
     lookupTableYCrCbToR = new unsigned char**[256];
     lookupTableYCrCbToG = new unsigned char**[256];
     lookupTableYCrCbToB = new unsigned char**[256];
+    lookupTableYCrCbToQRgb = new QRgb**[256];
     for (unsigned int y = 0; y < 256; y++) {
         std::cout << ".";
         std::cout.flush();
         lookupTableYCrCbToR[y] = new unsigned char*[256];
         lookupTableYCrCbToG[y] = new unsigned char*[256];
         lookupTableYCrCbToB[y] = new unsigned char*[256];
+        lookupTableYCrCbToQRgb[y] = new QRgb*[256];
         for (unsigned int cr0 = 0; cr0 < 256; cr0++) {
             lookupTableYCrCbToR[y][cr0] = new unsigned char[256];
             lookupTableYCrCbToG[y][cr0] = new unsigned char[256];
             lookupTableYCrCbToB[y][cr0] = new unsigned char[256];
+            lookupTableYCrCbToQRgb[y][cr0] = new QRgb[256];
             for (unsigned int cb0 = 0; cb0 < 256; cb0++) {
                 char convCr0 = cr0 - 128;
                 char convCb0 = cb0 - 128;
@@ -52,6 +55,8 @@ RenderingTest::RenderingTest(){
                 lookupTableYCrCbToR[y][cr0][cb0] = r;
                 lookupTableYCrCbToG[y][cr0][cb0] = g;
                 lookupTableYCrCbToB[y][cr0][cb0] = b;
+                
+                lookupTableYCrCbToQRgb[y][cr0][cb0] = qRgb(r, g, b);
             }
         }
     }
@@ -131,11 +136,13 @@ RenderingTest::RenderingTest(){
     }
     
     // configure audio stream
+    /*
     if (deckLinkInput->EnableAudioInput(audioSampleRate, audioSampleDepth, audioChannels) != S_OK)
     {
 		std::cout << "could not configure audio stream\n";
         return;
     }
+    */
     
     // start streaming
     if(deckLinkInput->StartStreams() != S_OK)
@@ -214,6 +221,12 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
     audioAcceptanceMutex.unlock();
     */
     
+    // discard null video frame (it may happen that we only got audio)
+    if (videoFrame == 0)
+    {
+        return S_OK;
+    }
+    
     // drop frame if previous call is still being processed
     if (!frameAcceptanceMutex.tryLock()) {
         // DEBUG: show that we are dropping frames
@@ -234,7 +247,7 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
     }
     else
     {
-        image = QImage(width, height, QImage::Format_RGB32);
+        QImage newImage = QImage(width, height, QImage::Format_RGB32);
 
         unsigned char *rowBuffer = new unsigned char[rowBytes];
 
@@ -244,15 +257,16 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
         }
         else
         {
+            long bufferPos = 0;
+            long widthHalf = width/2;
             for (long y=0; y<height; y++)
             {
-                long widthHalf = width/2;
                 for (long xHalf=0; xHalf<widthHalf; xHalf++)
                 {
-                    unsigned char cb0 = rowBuffer[y*rowBytes + xHalf*4 + 0];
-                    unsigned char y0  = rowBuffer[y*rowBytes + xHalf*4 + 1];
-                    unsigned char cr0 = rowBuffer[y*rowBytes + xHalf*4 + 2];
-                    unsigned char y1  = rowBuffer[y*rowBytes + xHalf*4 + 3];
+                    unsigned char cb0 = rowBuffer[bufferPos++];
+                    unsigned char y0  = rowBuffer[bufferPos++];
+                    unsigned char cr0 = rowBuffer[bufferPos++];
+                    unsigned char y1  = rowBuffer[bufferPos++];
                     
                     /*
                     char convCr0 = cr0 - 128;
@@ -285,12 +299,19 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
                     image.setPixel(xHalf * 2 + 1, y, qRgb(r1, g1, b1));
                     */
                     
-                    image.setPixel(xHalf * 2,     y, qRgb(lookupTableYCrCbToR[y0][cr0][cb0], lookupTableYCrCbToG[y0][cr0][cb0], lookupTableYCrCbToB[y0][cr0][cb0]));
-                    image.setPixel(xHalf * 2 + 1, y, qRgb(lookupTableYCrCbToR[y1][cr0][cb0], lookupTableYCrCbToG[y1][cr0][cb0], lookupTableYCrCbToB[y1][cr0][cb0]));
+                    //newImage.setPixel(xHalf * 2,     y, qRgb(lookupTableYCrCbToR[y0][cr0][cb0], lookupTableYCrCbToG[y0][cr0][cb0], lookupTableYCrCbToB[y0][cr0][cb0]));
+                    //newImage.setPixel(xHalf * 2 + 1, y, qRgb(lookupTableYCrCbToR[y1][cr0][cb0], lookupTableYCrCbToG[y1][cr0][cb0], lookupTableYCrCbToB[y1][cr0][cb0]));
+                    newImage.setPixel(xHalf * 2,     y, lookupTableYCrCbToQRgb[y0][cr0][cb0]);
+                    newImage.setPixel(xHalf * 2 + 1, y, lookupTableYCrCbToQRgb[y1][cr0][cb0]);
                 }
             }
         }
-
+        
+        // switch image
+        frameDrawMutex.lock();
+        image = newImage;
+        frameDrawMutex.unlock();
+        
         // ask Qt to repaint the widget optimized
         update();
     }
@@ -301,10 +322,11 @@ HRESULT STDMETHODCALLTYPE RenderingTest::VideoInputFrameArrived(IDeckLinkVideoIn
 
 void RenderingTest::paintEvent(QPaintEvent *event)
 {
-    frameAcceptanceMutex.lock();
+    frameDrawMutex.lock();
     
     QPainter painter(this);
     painter.drawImage(0, 0, image);
+    painter.end();
     
     /*
     painter.setPen(palette().dark().color());
@@ -320,7 +342,7 @@ void RenderingTest::paintEvent(QPaintEvent *event)
     }
     */
     
-    frameAcceptanceMutex.unlock();
+    frameDrawMutex.unlock();
 }
 
 void RenderingTest::acceptNewImage()

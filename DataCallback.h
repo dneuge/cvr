@@ -44,7 +44,9 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         QImage **image;
         //QBuffer audioBuffer;
         //QAudioOutput *audioOutput;
-    
+        
+        bool halfFrameRate;
+        bool lastFrameUsed;
     public slots:
         void toggleCapture();
     

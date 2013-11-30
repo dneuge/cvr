@@ -22,6 +22,8 @@ DataCallback::DataCallback(QImage** image, QMutex* frameDrawMutex){
     this->frameDrawMutex = frameDrawMutex;
     this->image = image;
     skipFrames = false;
+    lastFrameUsed = false;
+    halfFrameRate = true; // skip every second frame?
     
     // pre-calculate YCrCb conversion table
     std::cout << "pre-calculating color space conversion table, wait";
@@ -206,6 +208,13 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     }
     audioAcceptanceMutex.unlock();
     */
+    
+    // ignore every second frame if half frame rate is requested
+    if (halfFrameRate && lastFrameUsed) {
+        lastFrameUsed = false;
+        return S_OK;
+    }
+    lastFrameUsed = true;
     
     // discard null (it may happen that we only got audio) or ignored video frames
     if ((videoFrame == 0) || skipFrames)

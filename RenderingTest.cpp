@@ -319,6 +319,11 @@ void DataCallback::toggleCapture()
 
 RenderingTest::RenderingTest()
 {
+    // try to enhance performance
+    setAutoFillBackground(false);
+    setAttribute(Qt::WA_NoSystemBackground, true);
+    setAttribute(Qt::WA_PaintOnScreen, true);
+    
     image = new QImage(1280, 720, QImage::Format_RGB32);
     
     dataCallback = new DataCallback(&image, &frameDrawMutex);

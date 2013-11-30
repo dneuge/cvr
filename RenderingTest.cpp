@@ -9,10 +9,14 @@ RenderingTest::RenderingTest()
     
     image = new QImage(1280, 720, QImage::Format_RGB32);
     
+    videoSurface = new VideoSurface(this, &image, &frameDrawMutex);
+    QVideoSurfaceFormat format = QVideoSurfaceFormat(QSize(1280, 720), QVideoFrame::Format_RGB32);
+    videoSurface->start(format);
+    
     dataCallback = new DataCallback(&image, &frameDrawMutex);
     dataCallback->moveToThread(&dataCallbackThread);
     
-    connect(dataCallback, SIGNAL(imageUpdated()), this, SLOT(update()));
+    connect(dataCallback, SIGNAL(imageUpdated()), videoSurface, SLOT(newFrame()));
     
     dataCallbackThread.start();
 }
@@ -21,25 +25,19 @@ void RenderingTest::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
     
+    QPainter *painter = new QPainter(this);
+    
+    videoSurface->paint(painter);
+    
+    painter->end();
+    
+    /*
     frameDrawMutex.lock();
     
     QPainter painter(this);
     painter.drawImage(0, 0, *image);
     painter.end();
     
-    /*
-    painter.setPen(palette().dark().color());
-    painter.setBrush(Qt::NoBrush);
-    
-    //painter.drawRect(QRect(0, 0, 200, 200));
-    
-    for (int y=0; y<256; y++) {
-        for (int x=0; x<256; x++) {
-            painter.setPen(QColor::fromRgb(x, y, z));
-            painter.drawPoint(x, y);
-        }
-    }
-    */
-    
     frameDrawMutex.unlock();
+    */
 }

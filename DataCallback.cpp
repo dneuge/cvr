@@ -23,7 +23,8 @@ DataCallback::DataCallback(QImage** image, QMutex* frameDrawMutex){
     this->image = image;
     skipFrames = false;
     lastFrameUsed = false;
-    halfFrameRate = true; // skip every second frame?
+    //halfFrameRate = true; // skip every second frame?
+    halfFrameRate = false; // skip every second frame?
     
     // pre-calculate YCrCb conversion table
     std::cout << "pre-calculating color space conversion table, wait";

@@ -12,6 +12,7 @@
 #include <QThread>
 
 #include "DataCallback.h"
+#include "VideoSurface.h"
 
 class RenderingTest : public QWidget
 {
@@ -25,6 +26,7 @@ class RenderingTest : public QWidget
         void paintEvent(QPaintEvent *event);
     
     private:
+        VideoSurface *videoSurface;
         QImage *image;
         QMutex frameDrawMutex;
         QThread dataCallbackThread;

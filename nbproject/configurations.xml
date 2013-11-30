@@ -18,6 +18,10 @@
         <itemPath>RenderingTest.cpp</itemPath>
         <itemPath>RenderingTest.h</itemPath>
       </logicalFolder>
+      <logicalFolder name="f2" displayName="link" projectFiles="true">
+        <itemPath>DataCallback.cpp</itemPath>
+        <itemPath>DataCallback.h</itemPath>
+      </logicalFolder>
       <itemPath>main.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
@@ -58,6 +62,10 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="DataCallback.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="DataCallback.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="MainWindow.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="RenderingTest.cpp" ex="false" tool="1" flavor2="0">
@@ -95,6 +103,10 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="DataCallback.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="DataCallback.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="MainWindow.cpp" ex="false" tool="1" flavor2="0">
       </item>

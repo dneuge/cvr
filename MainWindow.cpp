@@ -39,6 +39,8 @@ void MainWindow::toggleFullscreen(bool maximizeInstead) {
         // disable
         flags &= ~Qt::FramelessWindowHint;
         setWindowState(Qt::WindowNoState);
+        
+        setCursor(Qt::ArrowCursor);
     } else {
         // enable
         flags |= Qt::FramelessWindowHint;
@@ -47,6 +49,8 @@ void MainWindow::toggleFullscreen(bool maximizeInstead) {
         } else {
             setWindowState(Qt::WindowFullScreen);
         }
+        
+        setCursor(Qt::BlankCursor);
     }
     
     setWindowFlags(flags);

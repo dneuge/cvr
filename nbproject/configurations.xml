@@ -62,6 +62,11 @@
             <pElem>/mnt/data/home/XXXXXX/Downloads/Blackmagic DeckLink SDK 9.7.7/Linux/include</pElem>
           </incDir>
         </ccTool>
+        <linkerTool>
+          <linkerLibItems>
+            <linkerOptionItem>`pkg-config --libs xv`</linkerOptionItem>
+          </linkerLibItems>
+        </linkerTool>
       </compileType>
       <item path="/mnt/data/home/XXXXXX/NetBeansProjects/HDMIViewer/MainWindow.h"
             ex="false"

@@ -18,13 +18,17 @@ inline unsigned char clampRGB(int x)
     return x;
 }
 
-DataCallback::DataCallback(QImage** image, QMutex* frameDrawMutex){
+DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned long rawImageLength, QMutex* frameDrawMutex){
     this->frameDrawMutex = frameDrawMutex;
     this->image = image;
+    this->rawImage = rawImage;
+    this->rawImageLength = rawImageLength;
+    
     skipFrames = false;
     lastFrameUsed = false;
     //halfFrameRate = true; // skip every second frame?
     halfFrameRate = false; // skip every second frame?
+    outputToQImage = false;
     
     // pre-calculate YCrCb conversion table
     std::cout << "pre-calculating color space conversion table, wait";
@@ -244,61 +248,67 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     else
     {
         QImage *newImage = new QImage(width, height, QImage::Format_RGB32);
-
-        unsigned char *rowBuffer = new unsigned char[rowBytes];
-
-        if (videoFrame->GetBytes((void**) &rowBuffer) != S_OK)
+        
+        unsigned long bufferLength = rowBytes * videoFrame->GetHeight();
+        unsigned char *imageBuffer = new unsigned char[bufferLength];
+        
+        if (videoFrame->GetBytes((void**) &imageBuffer) != S_OK)
         {
             std::cout << "failed to fill buffer\n";
+            delete newImage;
+            return S_OK;
         }
         else
         {
-            long bufferPos = 0;
-            long widthHalf = width/2;
-            for (long y=0; y<height; y++)
-            {
-                for (long xHalf=0; xHalf<widthHalf; xHalf++)
+            if (outputToQImage) {
+                // convert color space and set pixels on QImage
+                long bufferPos = 0;
+                long widthHalf = width/2;
+                for (long y=0; y<height; y++)
                 {
-                    unsigned char cb0 = rowBuffer[bufferPos++];
-                    unsigned char y0  = rowBuffer[bufferPos++];
-                    unsigned char cr0 = rowBuffer[bufferPos++];
-                    unsigned char y1  = rowBuffer[bufferPos++];
-                    
-                    /*
-                    char convCr0 = cr0 - 128;
-                    char convCb0 = cb0 - 128;
-                    */
-                    
-                    // http://en.wikipedia.org/wiki/YUV#Y.27UV444_to_RGB888_conversion
-                    /*
-                    // integer version
-                    unsigned char *rgb0 = onePixelYCrCbToRGB(y0, convCr0, convCb0);
-                    unsigned char *rgb1 = onePixelYCrCbToRGB(y1, convCr0, convCb0);
-                    
-                    image.setPixel(xHalf * 2,     y, qRgb(rgb0[0], rgb0[1], rgb0[2]));
-                    image.setPixel(xHalf * 2 + 1, y, qRgb(rgb1[0], rgb1[1], rgb1[2]));
-                    
-                    delete rgb0;
-                    delete rgb1;
-                    */
-                    
-                    /*
-                    int r0 = clampRGB(round((double) y0 + 1.402 * convCr0));
-                    int g0 = clampRGB(round((double) y0 - 0.344 * convCb0 - 0.714 * convCr0));
-                    int b0 = clampRGB(round((double) y0 + 1.772 * convCb0));
-                    
-                    int r1 = clampRGB(round((double) y1 + 1.402 * convCr0));
-                    int g1 = clampRGB(round((double) y1 - 0.344 * convCb0 - 0.714 * convCr0));
-                    int b1 = clampRGB(round((double) y1 + 1.772 * convCb0));
-                    
-                    image.setPixel(xHalf * 2,     y, qRgb(r0, g0, b0));
-                    image.setPixel(xHalf * 2 + 1, y, qRgb(r1, g1, b1));
-                    */
-                    
-                    //newImage.setPixel(xHalf * 2,     y, qRgb(lookupTableYCrCbToR[y0][cr0][cb0], lookupTableYCrCbToG[y0][cr0][cb0], lookupTableYCrCbToB[y0][cr0][cb0]));
-                    //newImage.setPixel(xHalf * 2 + 1, y, qRgb(lookupTableYCrCbToR[y1][cr0][cb0], lookupTableYCrCbToG[y1][cr0][cb0], lookupTableYCrCbToB[y1][cr0][cb0]));
-                    newImage->setPixel(xHalf * 2,     y, lookupTableYCrCbToQRgb[y0][cr0][cb0]);
-                    newImage->setPixel(xHalf * 2 + 1, y, lookupTableYCrCbToQRgb[y1][cr0][cb0]);
+                    for (long xHalf=0; xHalf<widthHalf; xHalf++)
+                    {
+                        unsigned char cb0 = imageBuffer[bufferPos++];
+                        unsigned char y0  = imageBuffer[bufferPos++];
+                        unsigned char cr0 = imageBuffer[bufferPos++];
+                        unsigned char y1  = imageBuffer[bufferPos++];
+
+                        /*
+                        char convCr0 = cr0 - 128;
+                        char convCb0 = cb0 - 128;
+                        */
+
+                        // http://en.wikipedia.org/wiki/YUV#Y.27UV444_to_RGB888_conversion
+                        /*
+                        // integer version
+                        unsigned char *rgb0 = onePixelYCrCbToRGB(y0, convCr0, convCb0);
+                        unsigned char *rgb1 = onePixelYCrCbToRGB(y1, convCr0, convCb0);
+
+                        image.setPixel(xHalf * 2,     y, qRgb(rgb0[0], rgb0[1], rgb0[2]));
+                        image.setPixel(xHalf * 2 + 1, y, qRgb(rgb1[0], rgb1[1], rgb1[2]));
+
+                        delete rgb0;
+                        delete rgb1;
+                        */
+
+                        /*
+                        int r0 = clampRGB(round((double) y0 + 1.402 * convCr0));
+                        int g0 = clampRGB(round((double) y0 - 0.344 * convCb0 - 0.714 * convCr0));
+                        int b0 = clampRGB(round((double) y0 + 1.772 * convCb0));
+
+                        int r1 = clampRGB(round((double) y1 + 1.402 * convCr0));
+                        int g1 = clampRGB(round((double) y1 - 0.344 * convCb0 - 0.714 * convCr0));
+                        int b1 = clampRGB(round((double) y1 + 1.772 * convCb0));
+
+                        image.setPixel(xHalf * 2,     y, qRgb(r0, g0, b0));
+                        image.setPixel(xHalf * 2 + 1, y, qRgb(r1, g1, b1));
+                        */
+
+                        //newImage.setPixel(xHalf * 2,     y, qRgb(lookupTableYCrCbToR[y0][cr0][cb0], lookupTableYCrCbToG[y0][cr0][cb0], lookupTableYCrCbToB[y0][cr0][cb0]));
+                        //newImage.setPixel(xHalf * 2 + 1, y, qRgb(lookupTableYCrCbToR[y1][cr0][cb0], lookupTableYCrCbToG[y1][cr0][cb0], lookupTableYCrCbToB[y1][cr0][cb0]));
+                        newImage->setPixel(xHalf * 2,     y, lookupTableYCrCbToQRgb[y0][cr0][cb0]);
+                        newImage->setPixel(xHalf * 2 + 1, y, lookupTableYCrCbToQRgb[y1][cr0][cb0]);
+                    }
                 }
             }
         }
@@ -307,6 +317,14 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
         frameDrawMutex->lock();
         delete *image;
         *image = newImage;
+        
+        // copy buffer content to rawImage
+        if (rawImageLength < bufferLength) {
+            printf("buffer length %lu exceeds raw image length %lu, cannot copy raw image!\n", bufferLength, rawImageLength);
+        } else {
+            memcpy(rawImage, imageBuffer, bufferLength);
+        }
+        
         frameDrawMutex->unlock();
         
         // ask Qt to repaint the widget optimized

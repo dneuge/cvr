@@ -17,7 +17,7 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
     Q_OBJECT
     
     public:
-        DataCallback(QImage**, QMutex*);
+        DataCallback(QImage**, unsigned char*, unsigned long, QMutex*);
         virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID *ppv) { 
             Q_UNUSED(iid);
             Q_UNUSED(ppv);
@@ -35,6 +35,7 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         int audioSampleDepth;
         
         bool skipFrames;
+        bool outputToQImage;
         
         int refCount;
         QMutex refCountMutex;
@@ -44,6 +45,9 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         QImage **image;
         //QBuffer audioBuffer;
         //QAudioOutput *audioOutput;
+        
+        unsigned char* rawImage;
+        unsigned long rawImageLength;
         
         bool halfFrameRate;
         bool lastFrameUsed;

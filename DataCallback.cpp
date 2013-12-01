@@ -221,7 +221,7 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     long height = videoFrame->GetHeight();
     long rowBytes = videoFrame->GetRowBytes();
     BMDPixelFormat pixelFormat = videoFrame->GetPixelFormat();
-    printf("%li x %li, row bytes %li, pixel format %i\n", width, height, rowBytes, pixelFormat);
+    //printf("%li x %li, row bytes %li, pixel format %i\n", width, height, rowBytes, pixelFormat); // DEBUG
     
     if (pixelFormat != bmdFormat8BitYUV)
     {

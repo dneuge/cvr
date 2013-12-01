@@ -31,27 +31,31 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
     outputToQImage = false;
     
     // pre-calculate YCrCb conversion table
-    std::cout << "pre-calculating color space conversion table, wait";
-    lookupTableYCrCbToQRgb = new QRgb**[256];
-    for (unsigned int y = 0; y < 256; y++) {
-        std::cout << ".";
-        std::cout.flush();
-        lookupTableYCrCbToQRgb[y] = new QRgb*[256];
-        for (unsigned int cr0 = 0; cr0 < 256; cr0++) {
-            lookupTableYCrCbToQRgb[y][cr0] = new QRgb[256];
-            for (unsigned int cb0 = 0; cb0 < 256; cb0++) {
-                char convCr0 = cr0 - 128;
-                char convCb0 = cb0 - 128;
-                
-                unsigned char r = clampRGB(round((double) y + 1.402 * convCr0));
-                unsigned char g = clampRGB(round((double) y - 0.344 * convCb0 - 0.714 * convCr0));
-                unsigned char b = clampRGB(round((double) y + 1.772 * convCb0));
-                
-                lookupTableYCrCbToQRgb[y][cr0][cb0] = qRgb(r, g, b);
+    if (!outputToQImage) {
+        std::cout << "skipping setup of color space conversion table because output to QImage is disabled\n";
+    } else {
+        std::cout << "pre-calculating color space conversion table, wait";
+        lookupTableYCrCbToQRgb = new QRgb**[256];
+        for (unsigned int y = 0; y < 256; y++) {
+            std::cout << ".";
+            std::cout.flush();
+            lookupTableYCrCbToQRgb[y] = new QRgb*[256];
+            for (unsigned int cr0 = 0; cr0 < 256; cr0++) {
+                lookupTableYCrCbToQRgb[y][cr0] = new QRgb[256];
+                for (unsigned int cb0 = 0; cb0 < 256; cb0++) {
+                    char convCr0 = cr0 - 128;
+                    char convCb0 = cb0 - 128;
+
+                    unsigned char r = clampRGB(round((double) y + 1.402 * convCr0));
+                    unsigned char g = clampRGB(round((double) y - 0.344 * convCb0 - 0.714 * convCr0));
+                    unsigned char b = clampRGB(round((double) y + 1.772 * convCb0));
+
+                    lookupTableYCrCbToQRgb[y][cr0][cb0] = qRgb(r, g, b);
+                }
             }
         }
+        std::cout << " done\n";
     }
-    std::cout << " done\n";
     
     // initialize DeckLink API
     IDeckLink *deckLink;
@@ -167,22 +171,23 @@ inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
 
 HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
-    Q_UNUSED(audioPacket);
-    
+    // process audio packet
     char *audioBuffer;
-    if (audioPacket->GetBytes((void**) &audioBuffer) != S_OK)
-    {
-        std::cout << "error getting audio packet data\n";
-    }
-    else
-    {
-        long audioLength = audioPacket->GetSampleFrameCount() * audioChannels * (audioSampleDepth / 8);
-        if (audioLength > 0) {
-            // copy buffer to variable and feed connected Qt slots
-            char* rawAudio = new char[audioLength];
-            memcpy(rawAudio, audioBuffer, audioLength);
-            
-            emit audioArrived(rawAudio, audioLength);
+    if (audioPacket != 0) {
+        if (audioPacket->GetBytes((void**) &audioBuffer) != S_OK)
+        {
+            std::cout << "error getting audio packet data\n";
+        }
+        else
+        {
+            long audioLength = audioPacket->GetSampleFrameCount() * audioChannels * (audioSampleDepth / 8);
+            if (audioLength > 0) {
+                // copy buffer to variable and feed connected Qt slots
+                char* rawAudio = new char[audioLength];
+                memcpy(rawAudio, audioBuffer, audioLength);
+
+                emit audioArrived(rawAudio, audioLength);
+            }
         }
     }
     
@@ -219,10 +224,13 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     }
     else
     {
-        QImage *newImage = new QImage(width, height, QImage::Format_RGB32);
+        QImage *newImage;
+        if (outputToQImage) {
+            newImage = new QImage(width, height, QImage::Format_RGB32);
+        }
         
         unsigned long bufferLength = rowBytes * videoFrame->GetHeight();
-        unsigned char *imageBuffer = new unsigned char[bufferLength];
+        unsigned char *imageBuffer;
         
         if (videoFrame->GetBytes((void**) &imageBuffer) != S_OK)
         {
@@ -287,8 +295,11 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
         
         // switch image
         frameDrawMutex->lock();
-        delete *image;
-        *image = newImage;
+        
+        if (outputToQImage) {
+            delete *image;
+            *image = newImage;
+        }
         
         // copy buffer content to rawImage
         if (rawImageLength < bufferLength) {

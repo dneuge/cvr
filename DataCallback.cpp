@@ -171,6 +171,11 @@ inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
 
 HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
+    // skip? (capturing disabled)
+    if (skipFrames) {
+        return S_OK;
+    }
+    
     // process audio packet
     char *audioBuffer;
     if (audioPacket != 0) {
@@ -198,8 +203,8 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     }
     lastFrameUsed = true;
     
-    // discard null (it may happen that we only got audio) or ignored video frames
-    if ((videoFrame == 0) || skipFrames)
+    // discard null (it may happen that we only got audio)
+    if (videoFrame == 0)
     {
         return S_OK;
     }

@@ -35,9 +35,12 @@ class RenderingTest : public QWidget
     
     public slots:
         void showXvFrame();
+        void updateDimensions();
     
     protected:
         void paintEvent(QPaintEvent *event);
+        void resizeEvent(QResizeEvent*);
+        void mouseDoubleClickEvent(QMouseEvent*);
     
     private:
         VideoSurface *videoSurface;
@@ -52,6 +55,17 @@ class RenderingTest : public QWidget
         unsigned int grabbedXvPort;
         GC x11GC;
         WId windowId;
+        
+        int windowWidth;
+        int windowHeight;
+        int targetX;
+        int targetY;
+        unsigned int targetWidth;
+        unsigned int targetHeight;
+        
+    signals:
+        void doubleClicked();
+        void doubleClickedRight();
 };
 
 #endif	/* RENDERINGTEST_H */

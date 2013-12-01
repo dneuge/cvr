@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'RenderingTest.h'
 **
-** Created: Sun Dec 1 16:45:45 2013
+** Created: Sun Dec 1 18:43:05 2013
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.4)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,21 +23,28 @@ static const uint qt_meta_data_RenderingTest[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       1,   14, // methods
+       4,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       0,       // signalCount
+       2,       // signalCount
+
+ // signals: signature, parameters, type, tag, flags
+      15,   14,   14,   14, 0x05,
+      31,   14,   14,   14, 0x05,
 
  // slots: signature, parameters, type, tag, flags
-      15,   14,   14,   14, 0x0a,
+      52,   14,   14,   14, 0x0a,
+      66,   14,   14,   14, 0x0a,
 
        0        // eod
 };
 
 static const char qt_meta_stringdata_RenderingTest[] = {
-    "RenderingTest\0\0showXvFrame()\0"
+    "RenderingTest\0\0doubleClicked()\0"
+    "doubleClickedRight()\0showXvFrame()\0"
+    "updateDimensions()\0"
 };
 
 void RenderingTest::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -46,7 +53,10 @@ void RenderingTest::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         Q_ASSERT(staticMetaObject.cast(_o));
         RenderingTest *_t = static_cast<RenderingTest *>(_o);
         switch (_id) {
-        case 0: _t->showXvFrame(); break;
+        case 0: _t->doubleClicked(); break;
+        case 1: _t->doubleClickedRight(); break;
+        case 2: _t->showXvFrame(); break;
+        case 3: _t->updateDimensions(); break;
         default: ;
         }
     }
@@ -85,10 +95,22 @@ int RenderingTest::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 1)
+        if (_id < 4)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 1;
+        _id -= 4;
     }
     return _id;
+}
+
+// SIGNAL 0
+void RenderingTest::doubleClicked()
+{
+    QMetaObject::activate(this, &staticMetaObject, 0, 0);
+}
+
+// SIGNAL 1
+void RenderingTest::doubleClickedRight()
+{
+    QMetaObject::activate(this, &staticMetaObject, 1, 0);
 }
 QT_END_MOC_NAMESPACE

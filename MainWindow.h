@@ -10,7 +10,12 @@ class MainWindow : public QWidget
     Q_OBJECT
 
     public:
-        MainWindow();
+        MainWindow(QApplication*);
+        void toggleFullscreen(bool);
+        
+    public slots:
+        void toggleRealFullscreen();
+        void toggleFakeFullscreen();
     
     private:
         RenderingTest *renderingTest;

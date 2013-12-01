@@ -2,6 +2,9 @@
 
 RenderingTest::RenderingTest()
 {
+    // initialize dimensions
+    updateDimensions();
+    
     // enhance performance by setting widget content unmanaged
     setAutoFillBackground(false);
     setAttribute(Qt::WA_NoSystemBackground, true);
@@ -107,30 +110,58 @@ void RenderingTest::showXvFrame() {
     XvImage *xvImage = XvCreateImage(display, grabbedXvPort, FOURCC_UYVY_PLANAR, (char*) rawImage, 1280, 720);
     windowId = winId();
     x11GC = XCreateGC(display, winId(), 0, 0);
-    XvPutImage(display, grabbedXvPort, windowId, x11GC, xvImage, 0, 0, 1280, 720, 0, 0, width(), height());
+    XvPutImage(display, grabbedXvPort, windowId, x11GC, xvImage, 0, 0, 1280, 720, targetX, targetY, targetWidth, targetHeight);
     XFreeGC(display, x11GC);
     XFree(xvImage);
     
     frameDrawMutex.unlock();
 }
 
+void RenderingTest::updateDimensions() {
+    windowWidth = width();
+    windowHeight = height();
+    
+    //bool landscape = windowWidth > windowHeight;
+    
+    targetWidth  = windowWidth;
+    targetHeight = (double) targetWidth / 16 * 9;
+    
+    targetX = 0;
+    targetY = (windowHeight - targetHeight) / 2;
+}
+
+void RenderingTest::resizeEvent(QResizeEvent *event) {
+    Q_UNUSED(event);
+    
+    updateDimensions();
+}
+
 void RenderingTest::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
-    /*
+    
+    // paint everything outside Xv area black
+    
     QPainter *painter = new QPainter(this);
     
-    videoSurface->paint(painter);
+    // area above video
+    if (targetY > 0) {
+        painter->fillRect(0, 0, windowWidth, targetY, Qt::black);
+    }
+    
+    // area below video
+    unsigned int yEndVideo = targetY + targetHeight;
+    if (yEndVideo < windowHeight) {
+        painter->fillRect(0, yEndVideo, windowWidth, windowHeight - yEndVideo, Qt::black);
+    }
     
     painter->end();
-    */
-    /*
-    frameDrawMutex.lock();
-    
-    QPainter painter(this);
-    painter.drawImage(0, 0, *image);
-    painter.end();
-    
-    frameDrawMutex.unlock();
-    */
+}
+
+void RenderingTest::mouseDoubleClickEvent(QMouseEvent *event) {
+    if (event->buttons() == Qt::RightButton) {
+        emit doubleClickedRight();
+    } else {
+        emit doubleClicked();
+    }
 }

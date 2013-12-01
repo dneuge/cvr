@@ -12,6 +12,9 @@
       <logicalFolder name="f2" displayName="link" projectFiles="true">
         <itemPath>DataCallback.h</itemPath>
       </logicalFolder>
+      <logicalFolder name="f3" displayName="sound" projectFiles="true">
+        <itemPath>PulseAudioSink.h</itemPath>
+      </logicalFolder>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -27,6 +30,9 @@
       </logicalFolder>
       <logicalFolder name="f2" displayName="link" projectFiles="true">
         <itemPath>DataCallback.cpp</itemPath>
+      </logicalFolder>
+      <logicalFolder name="f3" displayName="sound" projectFiles="true">
+        <itemPath>PulseAudioSink.cpp</itemPath>
       </logicalFolder>
       <itemPath>main.cpp</itemPath>
     </logicalFolder>
@@ -65,6 +71,8 @@
         <linkerTool>
           <linkerLibItems>
             <linkerOptionItem>`pkg-config --libs xv`</linkerOptionItem>
+            <linkerOptionItem>`pkg-config --libs libpulse`</linkerOptionItem>
+            <linkerOptionItem>`pkg-config --libs libpulse-simple`</linkerOptionItem>
           </linkerLibItems>
         </linkerTool>
       </compileType>
@@ -78,6 +86,10 @@
       <item path="DataCallback.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="MainWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="PulseAudioSink.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="PulseAudioSink.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="RenderingTest.cpp" ex="false" tool="1" flavor2="0">
       </item>
@@ -124,6 +136,10 @@
       <item path="DataCallback.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="MainWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="PulseAudioSink.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="PulseAudioSink.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="RenderingTest.cpp" ex="false" tool="1" flavor2="0">
       </item>

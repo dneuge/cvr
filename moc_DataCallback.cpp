@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'DataCallback.h'
 **
-** Created: Sun Dec 1 14:49:36 2013
+** Created: Sun Dec 1 15:33:10 2013
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.4)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,24 +23,26 @@ static const uint qt_meta_data_DataCallback[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       2,   14, // methods
+       3,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       1,       // signalCount
+       2,       // signalCount
 
  // signals: signature, parameters, type, tag, flags
       14,   13,   13,   13, 0x05,
+      49,   29,   13,   13, 0x05,
 
  // slots: signature, parameters, type, tag, flags
-      29,   13,   13,   13, 0x0a,
+      75,   13,   13,   13, 0x0a,
 
        0        // eod
 };
 
 static const char qt_meta_stringdata_DataCallback[] = {
     "DataCallback\0\0imageUpdated()\0"
+    "rawAudio,byteLength\0audioArrived(char*,ulong)\0"
     "toggleCapture()\0"
 };
 
@@ -51,11 +53,11 @@ void DataCallback::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id
         DataCallback *_t = static_cast<DataCallback *>(_o);
         switch (_id) {
         case 0: _t->imageUpdated(); break;
-        case 1: _t->toggleCapture(); break;
+        case 1: _t->audioArrived((*reinterpret_cast< char*(*)>(_a[1])),(*reinterpret_cast< ulong(*)>(_a[2]))); break;
+        case 2: _t->toggleCapture(); break;
         default: ;
         }
     }
-    Q_UNUSED(_a);
 }
 
 const QMetaObjectExtraData DataCallback::staticMetaObjectExtraData = {
@@ -92,9 +94,9 @@ int DataCallback::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 2)
+        if (_id < 3)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 3;
     }
     return _id;
 }
@@ -103,5 +105,12 @@ int DataCallback::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 void DataCallback::imageUpdated()
 {
     QMetaObject::activate(this, &staticMetaObject, 0, 0);
+}
+
+// SIGNAL 1
+void DataCallback::audioArrived(char * _t1, unsigned long _t2)
+{
+    void *_a[] = { 0, const_cast<void*>(reinterpret_cast<const void*>(&_t1)), const_cast<void*>(reinterpret_cast<const void*>(&_t2)) };
+    QMetaObject::activate(this, &staticMetaObject, 1, _a);
 }
 QT_END_MOC_NAMESPACE

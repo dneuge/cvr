@@ -53,27 +53,6 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
     }
     std::cout << " done\n";
     
-    /*
-    // open audio buffer
-    audioBuffer.open(QIODevice::ReadWrite);
-    
-    // setup Qt audio playback
-    QAudioFormat format;
-    format.setFrequency(48000);
-    format.setByteOrder(QAudioFormat::LittleEndian);
-    format.setChannels(2);
-    format.setSampleSize(16);
-    format.setSampleType(QAudioFormat::UnSignedInt);
-    format.setCodec("audio/pcm");
-    
-    QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-    if (!info.isFormatSupported(format)) {
-        std::cout << "unable to setup audio playback, unsupported format\n";
-        return;
-    }
-    audioOutput = new QAudioOutput(format, this);
-    */
-    
     // initialize DeckLink API
     IDeckLink *deckLink;
     IDeckLinkInput *deckLinkInput;
@@ -84,6 +63,7 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
     //BMDAudioSampleRate audioSampleRate = bmdAudioSampleRate48kHz;
     audioChannels = 2; // stereo
     audioSampleDepth = 16; // 16 bit
+    audioSampleRate = 48000; // 48kHz
     
     // get iterator
     IDeckLinkIterator *deckLinkIterator = CreateDeckLinkIteratorInstance();
@@ -127,29 +107,20 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
     }
     
     // configure audio stream
-    /*
     if (deckLinkInput->EnableAudioInput(audioSampleRate, audioSampleDepth, audioChannels) != S_OK)
     {
 		std::cout << "could not configure audio stream\n";
         return;
     }
-    */
     
     // start streaming
     if(deckLinkInput->StartStreams() != S_OK)
     {
-		std::cout << "could not start video stream\n";
+		std::cout << "could not start capture streams\n";
         return;
     }
         
     std::cout << "initialized\n";
-    
-    /*
-    // start audio playback slightly delayed
-    sleep(1);
-    std::cout << "starting audio playback\n";
-    audioOutput->start(&audioBuffer);
-    */
 }
 
 /*
@@ -198,21 +169,22 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
 {
     Q_UNUSED(audioPacket);
     
-    /*
-    // audio frames should always be appended
-    audioAcceptanceMutex.lock();
-    char *audioBytes;
-    if (audioPacket->GetBytes((void**) &audioBytes) != S_OK)
+    char *audioBuffer;
+    if (audioPacket->GetBytes((void**) &audioBuffer) != S_OK)
     {
         std::cout << "error getting audio packet data\n";
     }
     else
     {
         long audioLength = audioPacket->GetSampleFrameCount() * audioChannels * (audioSampleDepth / 8);
-        audioBuffer.write(audioBytes, audioLength);
+        if (audioLength > 0) {
+            // copy buffer to variable and feed connected Qt slots
+            char* rawAudio = new char[audioLength];
+            memcpy(rawAudio, audioBuffer, audioLength);
+            
+            emit audioArrived(rawAudio, audioLength);
+        }
     }
-    audioAcceptanceMutex.unlock();
-    */
     
     // ignore every second frame if half frame rate is requested
     if (halfFrameRate && lastFrameUsed) {

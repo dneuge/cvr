@@ -19,6 +19,7 @@
 
 #include "DataCallback.h"
 #include "VideoSurface.h"
+#include "PulseAudioSink.h"
 
 // see: http://www.fourcc.org/yuv.php
 #define FOURCC_UYVY_PLANAR 0x59565955
@@ -30,6 +31,7 @@ class RenderingTest : public QWidget
     public:
         RenderingTest();
         DataCallback *dataCallback;
+        PulseAudioSink *pulseAudioSink;
     
     public slots:
         void showXvFrame();
@@ -44,6 +46,7 @@ class RenderingTest : public QWidget
         unsigned long rawImageLength;
         QMutex frameDrawMutex;
         QThread dataCallbackThread;
+        QThread pulseAudioSinkThread;
         
         Display *display;
         unsigned int grabbedXvPort;

@@ -33,6 +33,7 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         
         int audioChannels;
         int audioSampleDepth;
+        int audioSampleRate;
         
         bool skipFrames;
         bool outputToQImage;
@@ -43,8 +44,6 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         QMutex audioAcceptanceMutex;
         QMutex *frameDrawMutex;
         QImage **image;
-        //QBuffer audioBuffer;
-        //QAudioOutput *audioOutput;
         
         unsigned char* rawImage;
         unsigned long rawImageLength;
@@ -56,6 +55,7 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
     
     signals:
         void imageUpdated();
+        void audioArrived(char* rawAudio, unsigned long byteLength);
 };
 
 #endif	/* DATACALLBACK_H */

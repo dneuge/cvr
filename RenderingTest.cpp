@@ -7,6 +7,7 @@ RenderingTest::RenderingTest()
     setAttribute(Qt::WA_NoSystemBackground, true);
     setAttribute(Qt::WA_PaintOnScreen, true);
     
+    // create image and shared buffer
     image = new QImage(1280, 720, QImage::Format_RGB32);
     rawImageLength = 1280/2 * 720 * 4; // UYVY: 4 bytes per 2 pixels
     rawImage = new unsigned char[rawImageLength]; 
@@ -87,6 +88,14 @@ RenderingTest::RenderingTest()
     // link capture to trigger output update
     //connect(dataCallback, SIGNAL(imageUpdated()), videoSurface, SLOT(paintEvent));
     connect(dataCallback, SIGNAL(imageUpdated()), this, SLOT(showXvFrame()));
+    
+    // setup and start audio sink thread
+    pulseAudioSink = new PulseAudioSink();
+    pulseAudioSink->moveToThread(&pulseAudioSinkThread);
+    pulseAudioSinkThread.start();
+    
+    // link audio input signal to output slot
+    connect(dataCallback, SIGNAL(audioArrived(char*, unsigned long)), pulseAudioSink, SLOT(playAudio(char*, unsigned long)));
     
     // start capturing
     dataCallbackThread.start();

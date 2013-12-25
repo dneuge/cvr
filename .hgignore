@@ -5,3 +5,8 @@
 \.conflict\~$
 \.out$
 ~$
+^(|/)moc_[^/]+\.cpp$
+\.o$
+^dist/
+^\.dep\.inc$
+^nbproject/qt-Debug\.mk$

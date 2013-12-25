@@ -276,7 +276,7 @@ MatroskaEBMLElementDefinitions::~MatroskaEBMLElementDefinitions() {
  * @param name string containing name of element (as in original specifications table)
  * @return shared pointer to element definition object or 0 on error (do not free after use!)
  */
-EBMLElement* MatroskaEBMLElementDefinitions::getElementDefinitionByName(char *name) {
+EBMLElement* MatroskaEBMLElementDefinitions::getElementDefinitionByName(const char *name) {
     std::map<std::string, EBMLElement*>::iterator it = elementDefinitions.find(name);
     if (it == elementDefinitions.end()) {
         std::cerr << "unknown EBML element definition " << name << "\n";

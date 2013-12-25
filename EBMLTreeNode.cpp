@@ -1,8 +1,18 @@
 #include <string.h>
 #include <stdio.h>
 #include <iostream>
+#include <stdlib.h>
 
 #include "EBMLTreeNode.h"
+
+/**
+ * Creates a root tree node (node without frame).
+ */
+EBMLTreeNode::EBMLTreeNode() {
+    elementDefinition = 0;
+    binaryContent = 0;
+    contentLength = 0;
+}
 
 /**
  * Creates a new tree node of given element.
@@ -10,6 +20,8 @@
  */
 EBMLTreeNode::EBMLTreeNode(EBMLElement *elementDefinition) {
     this->elementDefinition = elementDefinition;
+    binaryContent = 0;
+    contentLength = 0;
 }
 
 EBMLTreeNode::~EBMLTreeNode() {
@@ -38,6 +50,17 @@ void EBMLTreeNode::setBinaryContent(unsigned char *binaryContent, unsigned long 
 }
 
 /**
+ * Copies from given pointer to element payload.
+ * @param binaryContent pointer to binary payload
+ * @param contentLength length of data at pointer
+ */
+void EBMLTreeNode::copyBinaryContent(unsigned char *binaryContent, unsigned long long contentLength) {
+    this->binaryContent = new unsigned char[contentLength];
+    memcpy(this->binaryContent, binaryContent, contentLength);
+    this->contentLength = contentLength;
+}
+
+/**
  * Swaps byte order.
  * @param original start of memory region to change
  * @param len length of memory region to change
@@ -54,16 +77,33 @@ void EBMLTreeNode::changeEndianness(unsigned char* original, unsigned long long 
 }
 
 /**
- * Sets the given signed integer as payload. Automatically converts from Little
- * Endian to Big Endian.
- * @param x integer to set
+ * Sets the given signed integer as payload. Automatically converts endianness.
+ * @param x integer number to set
  */
 void EBMLTreeNode::setIntegerContent(long long x) {
-    const unsigned char len = sizeof(x);
-    
+    copyWithChangedEndianness((unsigned char*) &x, sizeof(x));
+}
+
+/**
+ * Sets the given floating point number as payload. Automatically converts
+ * endianness.
+ * @param x floating point to set
+ */
+void EBMLTreeNode::setFloatContent(double x) {
+    // NOTE: result has to be 32 or 64 bit wide which currently is not checked
+    copyWithChangedEndianness((unsigned char*) &x, sizeof(x));
+}
+
+/**
+ * Copies data from pointer with changed endianness. Can be used to copy numeric
+ * payload that is in encoded as Little Endian.
+ * @param in source address to copy from
+ * @param len length of memory to copy
+ */
+void EBMLTreeNode::copyWithChangedEndianness(unsigned char *in, long long len) {
     // content has to be copied as memory area of x will change after return
     unsigned char *out = new unsigned char[len];
-    memcpy(out, &x, len);
+    memcpy(out, in, len);
     
     // encoding has to be BE but we are LE
     changeEndianness(out, len);
@@ -72,12 +112,14 @@ void EBMLTreeNode::setIntegerContent(long long x) {
 }
 
 /**
- * Sets the given string as payload. Saves pointer directly, do not
- * modify/delete afterwards! String may be freed by this function later on.
+ * Copies the given string as payload.
  * @param s string to set
  */
-void EBMLTreeNode::setString(char *s) {
-    setBinaryContent((unsigned char*) s, strlen(s));
+void EBMLTreeNode::copyString(const char *s) {
+    long long len = strlen(s);
+    unsigned char *copy = new unsigned char[len];
+    memcpy(copy, s, len);
+    setBinaryContent(copy, len);
 }
 
 /**
@@ -89,6 +131,24 @@ void EBMLTreeNode::setString(char *s) {
  */
 void EBMLTreeNode::addChildNode(EBMLTreeNode *node) {
     childrenNodes.push_back(node);
+}
+
+/**
+ * Returns the shared pointer to this element's binary content (payload without frame).
+ * Content may be manipulated/deleted after call, so do not manipulate tree
+ * after retrieval! You may also want to call getBinarySize().
+ * @return shared pointer to payload content
+ */
+unsigned char* EBMLTreeNode::getBinaryContent() {
+    return binaryContent;
+}
+
+/**
+ * Returns the binary content's size (payload without frame).
+ * @return payload size
+ */
+unsigned long long EBMLTreeNode::getBinarySize() {
+    return contentLength;
 }
 
 /**
@@ -198,4 +258,24 @@ void EBMLTreeNode::serialize() {
     
     // update binary size
     contentLength = totalInnerSize;
+}
+
+/**
+ * Creates a random ID to use in EBML. Generated ID may not be unique, check
+ * other generated IDs for matches and retry on collision. Returned pointer is
+ * your memory, so free after use (or give it to a tree node).
+ * @return pointer to random EBML ID (your memory, free after use)
+ */
+unsigned char* EBMLTreeNode::createRandomID() {
+    srand(time(0));
+    
+    unsigned char *id = new unsigned char[EBML_FRAMED_ID_LENGTH];
+    for (unsigned char i=0; i<EBML_FRAMED_ID_LENGTH; i++) {
+        id[i] = rand() % 256;
+    }
+    
+    id[0] = id[0] & 0x0F; // first byte can only use lower 4 bits freely, mask upper
+    id[0] = id[0] | 0x10; // upper 4 bits encode length instead (0001 means 28 bit ID)
+    
+    return id;
 }

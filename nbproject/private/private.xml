@@ -7,7 +7,13 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group name="Privat">
-            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/DataCallback.cpp</file>
+            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/main.cpp</file>
+            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/MatroskaEncoder.cpp</file>
+            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/MatroskaEncoder.h</file>
+            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/EBMLTreeNode.h</file>
+            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/EBMLElement.cpp</file>
+            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/EBMLElement.h</file>
+            <file>file:/home/XXXXXX/NetBeansProjects/HDMIViewer/EBMLTreeNode.cpp</file>
         </group>
     </open-files>
 </project-private>

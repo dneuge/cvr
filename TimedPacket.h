@@ -2,8 +2,10 @@
 #define	TIMEDPACKET_H
 
 class TimedPacket {
-    long timestamp;
-    char* data;
+    public:
+        unsigned long timestamp;
+        char* data;
+        unsigned long long dataLength;
 };
 
 #endif	/* TIMEDPACKET_H */

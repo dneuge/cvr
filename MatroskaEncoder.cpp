@@ -1,5 +1,6 @@
 #include <string.h>
 #include <fcntl.h>
+#include <iostream>
 
 #include "global_macros.h"
 
@@ -7,6 +8,9 @@
 
 MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     EBMLTreeNode *node;
+    initialTimestamp = 0;
+    fileOffsetClusterSize = 0;
+    fileOffsetClusterPayload = 0;
     
     // open file for output
     fh = fopen(fileName, "wb+");
@@ -371,6 +375,9 @@ void MatroskaEncoder::writeFileHeader() {
 void MatroskaEncoder::closeFile() {
     unsigned long long offsetAfterLastCluster = ftell(fh);
     
+    // close any open cluster
+    finalizeCluster(offsetAfterLastCluster);
+    
     // build tree for cue points
     EBMLTreeNode *cuesNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Cues"));
     
@@ -411,6 +418,11 @@ void MatroskaEncoder::closeFile() {
             node->setIntegerContent(cuePoint->clusterOffsetAudioTrack - fileOffsetSegmentPayload);
             cueTrackPositionsNode->addChildNode(node);
         }
+        
+        // cue point is no longer needed, free memory
+        delete cuePoint;
+        
+        it++;
     }
     
     // write cue points to disk
@@ -487,4 +499,79 @@ unsigned char* MatroskaEncoder::generateUniqueRandomID() {
     usedIDs.push_back(copy);
     
     return id;
+}
+
+void MatroskaEncoder::finalizeCluster(unsigned long long fileOffsetBefore) {
+    if (fileOffsetClusterSize != 0) {
+        // patch cluster size
+        unsigned long long clusterSize = fileOffsetBefore - fileOffsetClusterPayload;
+        unsigned char *out = EBMLTreeNode::encodeDataSize(clusterSize);
+        fseek(fh, fileOffsetClusterSize, SEEK_SET);
+        fwrite(out, EBML_DATA_SIZE, 1, fh);
+        delete out;
+        
+        // return to end of file
+        fseek(fh, fileOffsetBefore, SEEK_SET);
+    }
+}
+
+void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
+    // remember timestamp if this frame start the recording
+    if (initialTimestamp == 0) {
+        initialTimestamp = timedPacket->timestamp;
+    }
+    
+    // calculate timestamp relative to start of recording
+    unsigned long long relativeTimestampRecording = timedPacket->timestamp - initialTimestamp;
+    
+    // remember file position
+    unsigned long long fileOffsetBefore = ftell(fh);
+    
+    // each video frame starts a new cluster
+    
+    // -- end old cluster
+    finalizeCluster(fileOffsetBefore);
+        
+    // -- start new cluster
+    EBMLTreeNode *node;
+    EBMLTreeNode *clusterNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Cluster"));
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Timecode"));
+    node->setIntegerContent(relativeTimestampRecording);
+    clusterNode->addChildNode(node);
+    
+    clusterNode->serialize();
+    clusterNode->updateOffsets(fileOffsetBefore);
+    
+    fileOffsetCluster = clusterNode->getAbsoluteOffset();
+    fileOffsetClusterPayload = clusterNode->getAbsolutePayloadOffset();
+    fileOffsetClusterSize = clusterNode->getAbsoluteDataSizeOffset();
+    
+    fwrite(clusterNode->getOuterContent(), clusterNode->getOuterSize(), 1, fh);
+    
+    // add video frame
+    // SimpleBlock needs prefixed header
+    unsigned long long len = timedPacket->dataLength + 6;
+    unsigned char *out = new unsigned char[len];
+    memcpy(out + 6, timedPacket->data, timedPacket->dataLength);
+    
+    // see: http://www.matroska.org/technical/specs/index.html#simpleblock_structure
+    out[0] = 0b10000001; // 0x01 for video track number, identified as 8 bit (encoded like EBML data size etc.), thus prefixed MSB 1
+    out[1] = 0x00; // timecode upper byte; timecode is 0 because it matches the cluster timecode
+    out[2] = 0x00; // timecode lower byte
+    out[3] = 0b10000001; // keyframe, not invisible, no lacing, discardable
+    out[4] = 0x00; // no frames in lace
+    out[5] = 0x00; // lace size (0 because we use none)
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SimpleBlock"));
+    node->setBinaryContent(out, len);
+    node->serialize();
+    fwrite(node->getOuterContent(), node->getOuterSize(), 1, fh);
+    
+    // add cue point
+    cuePoints.push_back(new MatroskaCuePoint(relativeTimestampRecording, fileOffsetCluster, 0));
+    
+    // free memory
+    delete node; // also deletes out
+    delete clusterNode;
 }

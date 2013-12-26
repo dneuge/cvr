@@ -10,3 +10,4 @@
 ^dist/
 ^\.dep\.inc$
 ^nbproject/qt-Debug\.mk$
+^nbproject/private/

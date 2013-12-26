@@ -330,14 +330,45 @@ void EBMLTreeNode::updateOffsets(unsigned long long startOffset) {
  * @return offset from payload start of referenceNode to current node start
  */
 unsigned long long EBMLTreeNode::getRelativeOffset(EBMLTreeNode *referenceNode) {
-    unsigned long long relativeOffset = getAbsoluteOffset() - referenceNode->getAbsoluteOffset();
-    
-    // subtract frame from offset, as we need the payload offset
-    // only nodes with an element have a frame
-    if (referenceNode->elementDefinition != 0) {
-        relativeOffset -= referenceNode->elementDefinition->getSequenceLength();
-        relativeOffset -= EBML_DATA_SIZE;
-    }
+    unsigned long long relativeOffset = getAbsoluteOffset() - referenceNode->getAbsolutePayloadOffset();
     
     return relativeOffset;
+}
+
+/**
+ * Calculates the absolute offset of this node's payload (absolute offset +
+ * frame head).
+ * Requires serialization & updated offsets before use.
+ * @return absolute offset of payload start
+ */
+unsigned long long EBMLTreeNode::getAbsolutePayloadOffset() {
+    unsigned long long offset = getAbsoluteOffset();
+    
+    // add frame size to offset to reach payload
+    // only nodes with an element have a frame
+    if (elementDefinition != 0) {
+        offset += elementDefinition->getSequenceLength();
+        offset += EBML_DATA_SIZE;
+    }
+    
+    return offset;
+}
+
+/**
+ * Calculates the absolute offset of this node's data size (absolute offset +
+ * element sequence).
+ * Requires serialization & updated offsets before use.
+ * @return absolute offset of data size or 0 if invalid
+ */
+unsigned long long EBMLTreeNode::getAbsoluteDataSizeOffset() {
+    // only nodes with an element have frames
+    // as the offset resides in the frame header, we require an element
+    if (elementDefinition == 0) {
+        return 0;
+    }
+    
+    unsigned long long offset = getAbsoluteOffset();
+    offset += elementDefinition->getSequenceLength();
+    
+    return offset;
 }

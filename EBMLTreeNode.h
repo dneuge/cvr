@@ -29,9 +29,12 @@ class EBMLTreeNode {
         unsigned char* getOuterContent();
         unsigned long long getOuterSize();
         unsigned long long getAbsoluteOffset();
+        unsigned long long getAbsolutePayloadOffset();
+        unsigned long long getAbsoluteDataSizeOffset();
         unsigned long long getRelativeOffset(EBMLTreeNode*);
         static unsigned char* createRandomID();
-        unsigned char* encodeDataSize(unsigned long long size);
+        static unsigned char* encodeDataSize(unsigned long long size);
+        static void changeEndianness(unsigned char*, unsigned long long);
         
     private:
         EBMLElement *elementDefinition;
@@ -40,8 +43,6 @@ class EBMLTreeNode {
         unsigned long long contentLength;
         unsigned char *binaryContent;
         unsigned long long absoluteOffset;
-        
-        void changeEndianness(unsigned char*, unsigned long long);
 };
 
 #endif	/* EBMLTREENODE_H */

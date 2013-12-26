@@ -1,4 +1,5 @@
 #include <string.h>
+#include <fcntl.h>
 
 #include "global_macros.h"
 
@@ -342,14 +343,109 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     seekPositionNodeForSegmentInfo->setIntegerContent(segmentInformationNode->getRelativeOffset(segmentNode));
     seekPositionNodeForTrackInfo->setIntegerContent(tracksNode->getRelativeOffset(segmentNode));
     seekPositionNodeForTags->setIntegerContent(tagsNode->getRelativeOffset(segmentNode));
+    
+    // cue points are defined later, so we don't know the offset yet and need to
+    // patch it later; remember offset
+    fileOffsetCueReference = seekPositionNodeForCuePoints->getAbsolutePayloadOffset();
+    
+    // same for the total segment size (encloses clusters)
+    fileOffsetSegmentSize = segmentNode->getAbsoluteDataSizeOffset();
+    
+    // needed for segment size calculation
+    fileOffsetSegmentPayload = segmentNode->getAbsolutePayloadOffset();
 }
 
 void MatroskaEncoder::writeFileHeader() {
+    // serialize once more to get the latest data
+    // (required after reference offsets have been set)
     rootNode->serialize();
+    
+    // write to disk
     fwrite(rootNode->getBinaryContent(), rootNode->getBinarySize(), 1, fh);
+    
+    // tree is no longer needed, we can dispose it now
+    delete rootNode;
+    rootNode = 0;
 }
 
 void MatroskaEncoder::closeFile() {
+    unsigned long long offsetAfterLastCluster = ftell(fh);
+    
+    // build tree for cue points
+    EBMLTreeNode *cuesNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Cues"));
+    
+    EBMLTreeNode *node;
+    std::vector<MatroskaCuePoint*>::iterator it = cuePoints.begin();
+    while (it != cuePoints.end()) {
+        MatroskaCuePoint *cuePoint = *it;
+        
+        EBMLTreeNode *cuePointNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CuePoint"));
+        cuesNode->addChildNode(cuePointNode);
+        
+        node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CueTime"));
+        node->setIntegerContent(cuePoint->timeMillis);
+        cuePointNode->addChildNode(node);
+        
+        if (cuePoint->clusterOffsetVideoTrack != 0) {
+            EBMLTreeNode *cueTrackPositionsNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CueTrackPositions"));
+            cuePointNode->addChildNode(cueTrackPositionsNode);
+            
+            node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CueTrack"));
+            node->setIntegerContent(MATROSKA_TRACK_TYPE_VIDEO);
+            cueTrackPositionsNode->addChildNode(node);
+            
+            node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CueClusterPosition"));
+            node->setIntegerContent(cuePoint->clusterOffsetVideoTrack - fileOffsetSegmentPayload);
+            cueTrackPositionsNode->addChildNode(node);
+        }
+        
+        if (cuePoint->clusterOffsetAudioTrack != 0) {
+            EBMLTreeNode *cueTrackPositionsNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CueTrackPositions"));
+            cuePointNode->addChildNode(cueTrackPositionsNode);
+            
+            node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CueTrack"));
+            node->setIntegerContent(MATROSKA_TRACK_TYPE_AUDIO);
+            cueTrackPositionsNode->addChildNode(node);
+            
+            node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("CueClusterPosition"));
+            node->setIntegerContent(cuePoint->clusterOffsetAudioTrack - fileOffsetSegmentPayload);
+            cueTrackPositionsNode->addChildNode(node);
+        }
+    }
+    
+    // write cue points to disk
+    cuesNode->serialize();
+    fwrite(cuesNode->getOuterContent(), cuesNode->getOuterSize(), 1, fh);
+    
+    // remember total file size, file won't grow any more
+    unsigned long long totalFileSize = ftell(fh);
+    
+    // patch references and sizes
+    
+    // -- segment size
+    // patch data size attribute of Segment node with actual payload size
+    unsigned long long segmentSize = totalFileSize - fileOffsetSegmentPayload;
+    unsigned char *segmentDataSize = EBMLTreeNode::encodeDataSize(segmentSize);
+    
+    fseek(fh, fileOffsetSegmentSize, SEEK_SET);
+    fwrite(segmentDataSize, EBML_DATA_SIZE, 1, fh);
+    
+    delete segmentDataSize;
+    
+    // -- cue points reference
+    // patch cue point reference to point to actual Cues node
+    unsigned long long relativeOffset = offsetAfterLastCluster - fileOffsetSegmentPayload;
+    unsigned char len = sizeof(relativeOffset);
+    unsigned char *out = new unsigned char[len];
+    memcpy(out, (unsigned char*) &relativeOffset, len);
+    EBMLTreeNode::changeEndianness(out, len);
+    
+    fseek(fh, fileOffsetCueReference, SEEK_SET);
+    fwrite(out, len, 1, fh);
+    
+    delete out;
+    
+    // flush to disk and close handle
     fflush(fh);
     fclose(fh);
 }

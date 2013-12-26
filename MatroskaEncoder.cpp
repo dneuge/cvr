@@ -43,11 +43,11 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     ebmlNode->addChildNode(node);
     
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("DocTypeVersion"));
-    node->setIntegerContent(1);
+    node->setIntegerContent(2);
     ebmlNode->addChildNode(node);
     
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("DocTypeReadVersion"));
-    node->setIntegerContent(1);
+    node->setIntegerContent(2);
     ebmlNode->addChildNode(node);
     
     // start segment
@@ -181,9 +181,11 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     node->setIntegerContent(1); // tells players that the codec is able to handle damaged frames; IMHO actually depends on implementation but unfortunately this has to be hardcoded
     trackEntryNode->addChildNode(node);
     
+    /* this is Matroska v4
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekPreRoll"));
     node->setIntegerContent(0); // I guess no pre-rolling is necessary as we encode full frames, no differential
     trackEntryNode->addChildNode(node);
+    */
     
     EBMLTreeNode *videoSettingsNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Video"));
     trackEntryNode->addChildNode(videoSettingsNode);
@@ -257,9 +259,11 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     node->setIntegerContent(1); // tells players that the codec is able to handle damaged frames; should be the case for uncompressed raw audio files
     trackEntryNode->addChildNode(node);
     
+    /* this is Matroska v4
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekPreRoll"));
     node->setIntegerContent(0); // uncompressed audio surely doesn't need pre-rolling?
     trackEntryNode->addChildNode(node);
+    */
     
     EBMLTreeNode *audioSettingsNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Audio"));
     trackEntryNode->addChildNode(audioSettingsNode);
@@ -275,6 +279,69 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("BitDepth"));
     node->setIntegerContent(16); // TODO: don't hardcode
     audioSettingsNode->addChildNode(node);
+    
+    // tags
+    EBMLTreeNode *tagsNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Tags"));
+    segmentNode->addChildNode(tagsNode);
+    
+    EBMLTreeNode *tagNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Tag"));
+    tagsNode->addChildNode(tagNode);
+    
+    EBMLTreeNode *targetsNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Targets"));
+    tagNode->addChildNode(targetsNode);
+    
+    // -- encoder
+    EBMLTreeNode *simpleTagNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SimpleTag"));
+    tagNode->addChildNode(simpleTagNode);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagName"));
+    node->copyString("ENCODER");
+    simpleTagNode->addChildNode(node);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagLanguage"));
+    node->copyString("und");
+    simpleTagNode->addChildNode(node);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagDefault"));
+    node->setIntegerContent(1);
+    simpleTagNode->addChildNode(node);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagString"));
+    node->copyString(APP_NAME_VERSION_STRING);
+    simpleTagNode->addChildNode(node);
+    
+    // -- title
+    simpleTagNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SimpleTag"));
+    tagNode->addChildNode(simpleTagNode);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagName"));
+    node->copyString("TITLE");
+    simpleTagNode->addChildNode(node);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagLanguage"));
+    node->copyString("und");
+    simpleTagNode->addChildNode(node);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagDefault"));
+    node->setIntegerContent(1);
+    simpleTagNode->addChildNode(node);
+    
+    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TagString"));
+    node->copyString("test");
+    simpleTagNode->addChildNode(node);
+    
+    
+    // update reference pointers
+    // We only have absolute byte offsets after serialization, so we need to
+    // serialize once, calculate all offsets and can then update pointers in
+    // tree structure. Note that we will need a second serialization to get
+    // those updated values to show up on output!
+    // Also note that we need to set offsets relative to the segment.
+    rootNode->serialize();
+    rootNode->updateOffsets(0);
+    seekPositionNodeForSegmentInfo->setIntegerContent(segmentInformationNode->getRelativeOffset(segmentNode));
+    seekPositionNodeForTrackInfo->setIntegerContent(tracksNode->getRelativeOffset(segmentNode));
+    seekPositionNodeForTags->setIntegerContent(tagsNode->getRelativeOffset(segmentNode));
 }
 
 void MatroskaEncoder::writeFileHeader() {

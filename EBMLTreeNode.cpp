@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
+#include <X11/Xutil.h>
 
 #include "EBMLTreeNode.h"
 
@@ -12,6 +13,7 @@ EBMLTreeNode::EBMLTreeNode() {
     elementDefinition = 0;
     binaryContent = 0;
     contentLength = 0;
+    absoluteOffset = 0;
 }
 
 /**
@@ -22,6 +24,7 @@ EBMLTreeNode::EBMLTreeNode(EBMLElement *elementDefinition) {
     this->elementDefinition = elementDefinition;
     binaryContent = 0;
     contentLength = 0;
+    absoluteOffset = 0;
 }
 
 EBMLTreeNode::~EBMLTreeNode() {
@@ -278,4 +281,63 @@ unsigned char* EBMLTreeNode::createRandomID() {
     id[0] = id[0] | 0x10; // upper 4 bits encode length instead (0001 means 28 bit ID)
     
     return id;
+}
+
+/**
+ * Returns the absolute byte offset as seen from root node. Requires updateOffsets() upon
+ * serialization. Used to retrieve reference offsets and calculate patch pointers.
+ * @return absolute byte offset to root node
+ */
+unsigned long long EBMLTreeNode::getAbsoluteOffset() {
+    return absoluteOffset;
+}
+
+/**
+ * Calculates offsets for this node and all children.
+ * @param startOffset offset this node resides at (0 for root node)
+ */
+void EBMLTreeNode::updateOffsets(unsigned long long startOffset) {
+    // remember offset for this node
+    absoluteOffset = startOffset;
+    
+    // first element is offset by element sequence length and data size specification
+    // NOTE: if this node is of no element (i.e. it is the root node) we do not have any framing
+    unsigned long long currentOffset = startOffset;
+    if (elementDefinition != 0) {
+        currentOffset += elementDefinition->getSequenceLength();
+        currentOffset += EBML_DATA_SIZE;
+    }
+    
+    // update all children
+    std::vector<EBMLTreeNode*>::iterator it = childrenNodes.begin();
+    while (it != childrenNodes.end()) {
+        // recurse to update child
+        (*it)->updateOffsets(currentOffset);
+        
+        // add frame size to offset for next element
+        unsigned long long childSize = (*it)->getOuterSize();
+        currentOffset += childSize;
+        
+        it++;
+    }
+}
+
+/**
+ * Calculates the offset of this node relative to the reference node's payload
+ * start given.
+ * Requires serialization & updated offsets before use.
+ * @param referenceNode node to calculate offset from (relative to payload start)
+ * @return offset from payload start of referenceNode to current node start
+ */
+unsigned long long EBMLTreeNode::getRelativeOffset(EBMLTreeNode *referenceNode) {
+    unsigned long long relativeOffset = getAbsoluteOffset() - referenceNode->getAbsoluteOffset();
+    
+    // subtract frame from offset, as we need the payload offset
+    // only nodes with an element have a frame
+    if (referenceNode->elementDefinition != 0) {
+        relativeOffset -= referenceNode->elementDefinition->getSequenceLength();
+        relativeOffset -= EBML_DATA_SIZE;
+    }
+    
+    return relativeOffset;
 }

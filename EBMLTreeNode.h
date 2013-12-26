@@ -7,6 +7,9 @@
 
 #define EBML_FRAMED_ID_LENGTH 4
 
+// we use a fixed length of 8 bytes to encode one size (1 header + 7 payload)
+#define EBML_DATA_SIZE 8
+
 class EBMLTreeNode {
     public:
         EBMLTreeNode();
@@ -20,23 +23,25 @@ class EBMLTreeNode {
         void copyString(const char*);
         void addChildNode(EBMLTreeNode*);
         void serialize();
+        void updateOffsets(unsigned long long);
         unsigned char* getBinaryContent();
         unsigned long long getBinarySize();
         unsigned char* getOuterContent();
         unsigned long long getOuterSize();
+        unsigned long long getAbsoluteOffset();
+        unsigned long long getRelativeOffset(EBMLTreeNode*);
         static unsigned char* createRandomID();
+        unsigned char* encodeDataSize(unsigned long long size);
         
     private:
         EBMLElement *elementDefinition;
         std::vector<EBMLTreeNode*> childrenNodes;
         
-        unsigned int contentLength;
+        unsigned long long contentLength;
         unsigned char *binaryContent;
-        
-        static const unsigned char EBML_DATA_SIZE = 8; // 8 bytes encode one size (1 header + 7 payload)
+        unsigned long long absoluteOffset;
         
         void changeEndianness(unsigned char*, unsigned long long);
-        unsigned char* encodeDataSize(unsigned long long size);
 };
 
 #endif	/* EBMLTREENODE_H */

@@ -208,10 +208,15 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     node->setIntegerContent(720); // TODO: don't hardcode
     videoSettingsNode->addChildNode(node);
     
+    /*
+    // colour space doesn't appear to be used by any player; mplayer gets confused and refuses to play if set to any YUV format
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("ColourSpace"));
-    node->copyBinaryContent((unsigned char[]) {0x36, 0x31, 0x56, 0x59}, 4); // YV16, which seems to be the planar equivalent of UYVY (which we get from the capture card); see http://fourcc.org/yuv.php
+    //node->copyBinaryContent((unsigned char[]) {0x36, 0x31, 0x56, 0x59}, 4); // YV16, which seems to be the planar equivalent of UYVY (which we get from the capture card); see http://fourcc.org/yuv.php
+    //node->copyBinaryContent((unsigned char[]) {0x59, 0x56, 0x59, 0x55}, 4); // UYVY
+    node->copyBinaryContent((unsigned char[]) {0x00, 0x00, 0x00, 0x00}, 4); // RGB (at least according to fourcc.org)
     videoSettingsNode->addChildNode(node);
-
+    */
+    
     // -- audio track
     trackEntryNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("TrackEntry"));
     tracksNode->addChildNode(trackEntryNode);

@@ -18,6 +18,8 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
     
     public:
         DataCallback(QImage**, unsigned char*, unsigned long, QMutex*);
+        void shutdown();
+        
         virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID *ppv) { 
             Q_UNUSED(iid);
             Q_UNUSED(ppv);
@@ -29,6 +31,10 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         virtual HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(IDeckLinkVideoInputFrame*, IDeckLinkAudioInputPacket*);
         
     private:
+        IDeckLink *deckLink;
+        IDeckLinkInput *deckLinkInput;
+        IDeckLinkIterator *deckLinkIterator;
+        
         QRgb ***lookupTableYCrCbToQRgb;
         
         int audioChannels;
@@ -50,6 +56,7 @@ class DataCallback : public QObject, public IDeckLinkInputCallback
         
         bool halfFrameRate;
         bool lastFrameUsed;
+        
     public slots:
         void toggleCapture();
     

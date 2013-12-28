@@ -62,9 +62,6 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
     }
     
     // initialize DeckLink API
-    IDeckLink *deckLink;
-    IDeckLinkInput *deckLinkInput;
-    
     BMDDisplayMode displayMode = bmdModeHD720p5994;
     BMDPixelFormat pixelFormat = bmdFormat8BitYUV;
     BMDVideoInputFlags inputFlags = 0;
@@ -74,7 +71,7 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
     audioSampleRate = 48000; // 48kHz
     
     // get iterator
-    IDeckLinkIterator *deckLinkIterator = CreateDeckLinkIteratorInstance();
+    deckLinkIterator = CreateDeckLinkIteratorInstance();
     if (!deckLinkIterator)
     {
         std::cout << "no iterator\n";
@@ -127,8 +124,24 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
 		std::cout << "could not start capture streams\n";
         return;
     }
-        
+    
+    // register shutdown callback to release DeckLink resources
+    // NOTE: that doesn't work and isn't adivsable as this is an object that
+    //       may cease to exist before the method can be called; we need some
+    //       shutdown hook setup by main() to call destructors instead
+    //atexit(&DataCallback::shutdown);
+    
     std::cout << "initialized\n";
+}
+
+void DataCallback::shutdown() {
+    // I've seen crashes in the kernel module most likely related to unclean
+    // termination of the application. We try to fix that by releasing all
+    // interface resources.
+    // FIXME: currently unused
+    deckLinkIterator->Release();
+    deckLinkInput->Release();
+    deckLink->Release();
 }
 
 /*

@@ -1,5 +1,9 @@
 #include "DataCallback.h"
 
+#include <time.h>
+
+#include "TimedPacket.h"
+
 // FIXME: that is very dirty but how else can we tell NetBeans to include that file? unfortunately it's not a lib
 #include "../../Downloads/Blackmagic DeckLink SDK 9.7.7/Linux/include/DeckLinkAPIDispatch.cpp"
 
@@ -178,6 +182,7 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     
     // process audio packet
     char *audioBuffer;
+    unsigned long audioLength = 0;
     if (audioPacket != 0) {
         if (audioPacket->GetBytes((void**) &audioBuffer) != S_OK)
         {
@@ -185,7 +190,7 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
         }
         else
         {
-            long audioLength = audioPacket->GetSampleFrameCount() * audioChannels * (audioSampleDepth / 8);
+            audioLength = audioPacket->GetSampleFrameCount() * audioChannels * (audioSampleDepth / 8);
             if (audioLength > 0) {
                 // copy buffer to variable and feed connected Qt slots
                 char* rawAudio = new char[audioLength];
@@ -203,47 +208,49 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     }
     lastFrameUsed = true;
     
-    // discard null (it may happen that we only got audio)
-    if (videoFrame == 0)
-    {
-        return S_OK;
-    }
-    
-    // drop frame if previous call is still being processed
-    if (!frameAcceptanceMutex.tryLock()) {
-        // DEBUG: show that we are dropping frames
-        std::cout << "d";
+    // it may happen that we only got audio, only process video frame if we got data
+    if (videoFrame != 0) {
+        bool videoFrameContinue = true;
         
-        return S_OK;
-    }
-    
-    long width = videoFrame->GetWidth();
-    long height = videoFrame->GetHeight();
-    long rowBytes = videoFrame->GetRowBytes();
-    BMDPixelFormat pixelFormat = videoFrame->GetPixelFormat();
-    //printf("%li x %li, row bytes %li, pixel format %i\n", width, height, rowBytes, pixelFormat); // DEBUG
-    
-    if (pixelFormat != bmdFormat8BitYUV)
-    {
-        std::cout << "unexpected pixel format, cannot decode\n";
-    }
-    else
-    {
+        long width = videoFrame->GetWidth();
+        long height = videoFrame->GetHeight();
+        long rowBytes = videoFrame->GetRowBytes();
+        BMDPixelFormat pixelFormat = videoFrame->GetPixelFormat();
+        //printf("%li x %li, row bytes %li, pixel format %i\n", width, height, rowBytes, pixelFormat); // DEBUG
+
         QImage *newImage;
-        if (outputToQImage) {
-            newImage = new QImage(width, height, QImage::Format_RGB32);
-        }
-        
-        unsigned long bufferLength = rowBytes * videoFrame->GetHeight();
+        unsigned long bufferLength;
         unsigned char *imageBuffer;
         
-        if (videoFrame->GetBytes((void**) &imageBuffer) != S_OK)
-        {
-            std::cout << "failed to fill buffer\n";
-            delete newImage;
-            return S_OK;
+        // drop frame if previous call is still being processed
+        if (!frameAcceptanceMutex.tryLock()) {
+            // DEBUG: show that we are dropping frames
+            std::cout << "d";
+
+            videoFrameContinue = false;
         }
-        else
+        
+        if (videoFrameContinue && (pixelFormat != bmdFormat8BitYUV)) {
+            std::cout << "unexpected pixel format, cannot decode\n";
+            videoFrameContinue = false;
+        }
+        
+        if (videoFrameContinue) {
+            if (outputToQImage) {
+                newImage = new QImage(width, height, QImage::Format_RGB32);
+            }
+            
+            bufferLength = rowBytes * videoFrame->GetHeight();
+
+            if (videoFrame->GetBytes((void**) &imageBuffer) != S_OK)
+            {
+                std::cout << "failed to fill buffer\n";
+                delete newImage;
+                videoFrameContinue = false;
+            }
+        }
+            
+        if (videoFrameContinue) 
         {
             if (outputToQImage) {
                 // convert color space and set pixels on QImage
@@ -296,31 +303,31 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
                     }
                 }
             }
+
+            // switch image
+            frameDrawMutex->lock();
+
+            if (outputToQImage) {
+                delete *image;
+                *image = newImage;
+            }
+
+            // copy buffer content to rawImage
+            if (rawImageLength < bufferLength) {
+                printf("buffer length %lu exceeds raw image length %lu, cannot copy raw image!\n", bufferLength, rawImageLength);
+            } else {
+                memcpy(rawImage, imageBuffer, bufferLength);
+            }
+
+            frameDrawMutex->unlock();
+
+            // ask Qt to repaint the widget optimized
+            emit imageUpdated();
         }
         
-        // switch image
-        frameDrawMutex->lock();
-        
-        if (outputToQImage) {
-            delete *image;
-            *image = newImage;
-        }
-        
-        // copy buffer content to rawImage
-        if (rawImageLength < bufferLength) {
-            printf("buffer length %lu exceeds raw image length %lu, cannot copy raw image!\n", bufferLength, rawImageLength);
-        } else {
-            memcpy(rawImage, imageBuffer, bufferLength);
-        }
-        
-        frameDrawMutex->unlock();
-        
-        // ask Qt to repaint the widget optimized
-        emit imageUpdated();
+        // we are ready for next frame
+        frameAcceptanceMutex.unlock();
     }
-    
-    // we are ready for next frame
-    frameAcceptanceMutex.unlock();
     
     return S_OK;
 };

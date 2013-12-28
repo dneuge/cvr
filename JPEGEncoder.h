@@ -12,7 +12,11 @@ class JPEGEncoder : public QObject
     Q_OBJECT
     
     public:
-        void encodeSingleFrame(char*, char**);
+        JPEGEncoder();
+        unsigned long long encodeImage(char*, unsigned long long, char**);
+        
+    private:
+        QThread thread;
 };
 
 #endif	/* JPEGENCODER_H */

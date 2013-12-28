@@ -1,38 +1,31 @@
 #ifndef QUEUEINGENCODER_H
 #define	QUEUEINGENCODER_H
 
-#include <iostream>
-#include <stdio.h>
-#include <list>
+#include <vector>
 
 #include <QObject>
-#include <QThread>
-#include <QMutex>
 
 #include "JPEGEncoder.h"
 #include "TimedPacket.h"
+#include "DelayedReceptionCallback.h"
+#include "EncodingRingBuffer.h"
+#include "MuxFeeder.h"
 
-class QueueingEncoder : public QObject
-{
+class QueueingEncoder : public QObject, public DelayedReceptionCallback {
     Q_OBJECT
     
     public:
-        void addVideoFrame(long, char*);
-        void addAudioPacket(long, char*);
-        long getTimestamp();
-        void startThreads(int);
+        QueueingEncoder(int);
+        virtual void dataReceived(TimedPacket* audioPacket, TimedPacket* videoFrame);
         
     private:
-        QMutex jpegEncoderMutex;
-        bool jpegEncoderReadiness[];
-        unsigned int numJPEGEncoders;
-        JPEGEncoder jpegEncoderInstances[];
-        QThread jpegEncoderThreads[];
+        std::vector<JPEGEncoder*> jpegEncoders;
         
-        QMutex queueMutex;
-        std::list<TimedPacket> rawVideoFrames;
-        std::list<TimedPacket> JPEGFrames;
-        std::list<TimedPacket> audioPackets;
+        MuxFeeder muxFeeder;
+        
+        EncodingRingBuffer rawFrameQueue;
+        EncodingRingBuffer encodedFrameQueue;
+        EncodingRingBuffer audioQueue;
 };
 
 

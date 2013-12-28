@@ -4,6 +4,7 @@
 #include <QWidget>
 
 #include "RenderingTest.h"
+#include "QueueingEncoder.h"
 
 class MainWindow : public QWidget
 {
@@ -19,6 +20,7 @@ class MainWindow : public QWidget
     
     private:
         RenderingTest *renderingTest;
+        QueueingEncoder *encoder;
 };
 
 #endif	/* MAINWINDOW_H */

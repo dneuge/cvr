@@ -1,36 +1,38 @@
 #include "QueueingEncoder.h"
 
-/**
- * Returns a consistent timestamp to use for tagging simultaneous audio packets
- * and video frames.
- * @return timestamp
- */
-long QueueingEncoder::getTimestamp() {
+#include <iostream>
+
+QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
+    unsigned long timeshiftMillis = 30000;
+    unsigned long maxRawFrames = 30;
     
+    audioQueue.configure(timeshiftMillis, 0);
+    rawFrameQueue.configure(0, maxRawFrames);
+    encodedFrameQueue.configure(timeshiftMillis, 0);
+    
+    for (int i=0; i<numEncoderThreads; i++) {
+        jpegEncoders.push_back(new JPEGEncoder());
+    }
 }
 
-/**
- * Adds one audio packet identified by timestamp.
- * @param timestamp timestamp to tag audio packet
- * @param data array of bytes to store
- */
-void QueueingEncoder::addAudioPacket(long timestamp, char* data) {
-
-}
-
-/**
- * Adds one video frame identified by timestamp.
- * @param timestamp timestamp to tag video frame
- * @param data array of raw video frame bytes to store
- */
-void QueueingEncoder::addVideoFrame(long timestamp, char* data) {
-
-}
-
-/**
- * Starts encoder threads.
- * @param numJPEGEncoders number of JPEG encoders to run simultaneously
- */
-void QueueingEncoder::startThreads(int numJPEGEncoders) {
-
+void QueueingEncoder::dataReceived(TimedPacket* audioPacket, TimedPacket* videoFrame) {
+    if (audioPacket != 0) {
+        if (!audioQueue.addPacket(audioPacket)) {
+            std::cerr << "failed to add audio packet to ring buffer\n";
+            
+            // free memory or we will leak
+            delete audioPacket->data;
+            delete audioPacket;
+        }
+    }
+    
+    if (videoFrame != 0) {
+        if (!rawFrameQueue.addPacket(videoFrame)) {
+            std::cerr << "failed to add video frame to raw image ring buffer\n";
+            
+            // free memory or we will leak
+            delete videoFrame->data;
+            delete videoFrame;
+        }
+    }
 }

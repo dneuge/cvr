@@ -4,13 +4,17 @@
 
 #include "MainWindow.h"
 #include "DummyReceptionCallback.h"
+#include "QueueingEncoder.h"
 
 MainWindow::MainWindow(QApplication *application)
 {
     renderingTest = new RenderingTest();
     
     // DEBUG: add dummy callback to print reception info
-    renderingTest->dataCallback->registerDelayedReceptionCallback(new DummyReceptionCallback());
+    //renderingTest->dataCallback->registerDelayedReceptionCallback(new DummyReceptionCallback());
+    
+    encoder = new QueueingEncoder(2);
+    renderingTest->dataCallback->registerDelayedReceptionCallback(encoder);
     
     QGridLayout *mainLayout = new QGridLayout;
     mainLayout->setSpacing(0);

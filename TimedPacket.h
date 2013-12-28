@@ -3,7 +3,10 @@
 
 class TimedPacket {
     public:
-        unsigned long timestamp;
+        TimedPacket(unsigned long long, unsigned long long, char*, unsigned long long);
+        
+        unsigned long long index;
+        unsigned long long timestampMillis;
         char* data;
         unsigned long long dataLength;
 };

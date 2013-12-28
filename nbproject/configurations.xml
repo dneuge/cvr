@@ -12,7 +12,6 @@
         <itemPath>MatroskaEBMLElementDefinitions.h</itemPath>
         <itemPath>MatroskaEncoder.h</itemPath>
         <itemPath>QueueingEncoder.h</itemPath>
-        <itemPath>TimedPacket.h</itemPath>
       </logicalFolder>
       <logicalFolder name="f1" displayName="gui" projectFiles="true">
         <itemPath>/mnt/data/home/XXXXXX/NetBeansProjects/HDMIViewer/MainWindow.h</itemPath>
@@ -21,6 +20,9 @@
       </logicalFolder>
       <logicalFolder name="f2" displayName="link" projectFiles="true">
         <itemPath>DataCallback.h</itemPath>
+        <itemPath>DelayedReceptionCallback.h</itemPath>
+        <itemPath>DummyReceptionCallback.h</itemPath>
+        <itemPath>TimedPacket.h</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="sound" projectFiles="true">
         <itemPath>PulseAudioSink.h</itemPath>
@@ -50,6 +52,8 @@
       </logicalFolder>
       <logicalFolder name="f2" displayName="link" projectFiles="true">
         <itemPath>DataCallback.cpp</itemPath>
+        <itemPath>DummyReceptionCallback.cpp</itemPath>
+        <itemPath>TimedPacket.cpp</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="sound" projectFiles="true">
         <itemPath>PulseAudioSink.cpp</itemPath>
@@ -105,6 +109,12 @@
       </item>
       <item path="DataCallback.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="DelayedReceptionCallback.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="DummyReceptionCallback.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="DummyReceptionCallback.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="EBMLElement.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="EBMLElement.h" ex="false" tool="3" flavor2="0">
@@ -142,6 +152,8 @@
       <item path="RenderingTest.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="RenderingTest.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="TimedPacket.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="TimedPacket.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -187,6 +199,12 @@
       </item>
       <item path="DataCallback.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="DelayedReceptionCallback.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="DummyReceptionCallback.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="DummyReceptionCallback.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="EBMLElement.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="EBMLElement.h" ex="false" tool="3" flavor2="0">
@@ -224,6 +242,8 @@
       <item path="RenderingTest.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="RenderingTest.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="TimedPacket.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="TimedPacket.h" ex="false" tool="3" flavor2="0">
       </item>

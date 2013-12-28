@@ -523,11 +523,11 @@ void MatroskaEncoder::finalizeCluster(unsigned long long fileOffsetBefore) {
 void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     // remember timestamp if this frame start the recording
     if (initialTimestamp == 0) {
-        initialTimestamp = timedPacket->timestamp;
+        initialTimestamp = timedPacket->timestampMillis;
     }
     
     // calculate timestamp relative to start of recording
-    unsigned long long relativeTimestampRecording = timedPacket->timestamp - initialTimestamp;
+    unsigned long long relativeTimestampRecording = timedPacket->timestampMillis - initialTimestamp;
     
     // remember file position
     unsigned long long fileOffsetBefore = ftell(fh);

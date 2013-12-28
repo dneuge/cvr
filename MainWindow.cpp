@@ -3,10 +3,14 @@
 #include <QKeySequence>
 
 #include "MainWindow.h"
+#include "DummyReceptionCallback.h"
 
 MainWindow::MainWindow(QApplication *application)
 {
     renderingTest = new RenderingTest();
+    
+    // DEBUG: add dummy callback to print reception info
+    renderingTest->dataCallback->registerDelayedReceptionCallback(new DummyReceptionCallback());
     
     QGridLayout *mainLayout = new QGridLayout;
     mainLayout->setSpacing(0);

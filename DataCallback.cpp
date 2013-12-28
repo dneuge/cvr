@@ -1,6 +1,7 @@
 #include "DataCallback.h"
 
 #include <time.h>
+#include <math.h>
 
 #include "TimedPacket.h"
 
@@ -23,6 +24,9 @@ inline unsigned char clampRGB(int x)
 }
 
 DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned long rawImageLength, QMutex* frameDrawMutex){
+    audioPacketCounter = 0;
+    videoFrameCounter = 0;
+    
     this->frameDrawMutex = frameDrawMutex;
     this->image = image;
     this->rawImage = rawImage;
@@ -188,10 +192,30 @@ inline unsigned char* onePixelYCrCbToRGB(char y, char cr, char cb)
 
 HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
+    // remember what time the data arrived
+    // CLOCK_MONOTONIC should give a clock related to system runtime, so it
+    // should be safe in case of clock adjustments during a recording
+    timespec timeOfReception;
+    clock_gettime(CLOCK_MONOTONIC, &timeOfReception);
+    
     // skip? (capturing disabled)
     if (skipFrames) {
         return S_OK;
     }
+    
+    // remember AV packet indices and increment
+    packetCounterMutex.lock();
+    
+    unsigned long long currentAudioPacketIndex = audioPacketCounter;
+    unsigned long long currentVideoFrameIndex = videoFrameCounter;
+    if (audioPacket != 0) {
+        audioPacketCounter++;
+    }
+    if (videoFrame != 0) {
+        videoFrameCounter++;
+    }
+    
+    packetCounterMutex.unlock();
     
     // process audio packet
     char *audioBuffer;
@@ -222,6 +246,8 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
     lastFrameUsed = true;
     
     // it may happen that we only got audio, only process video frame if we got data
+    unsigned char *imageBuffer;
+    unsigned long imageBufferLength = 0;
     if (videoFrame != 0) {
         bool videoFrameContinue = true;
         
@@ -232,8 +258,6 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
         //printf("%li x %li, row bytes %li, pixel format %i\n", width, height, rowBytes, pixelFormat); // DEBUG
 
         QImage *newImage;
-        unsigned long bufferLength;
-        unsigned char *imageBuffer;
         
         // drop frame if previous call is still being processed
         if (!frameAcceptanceMutex.tryLock()) {
@@ -253,12 +277,14 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
                 newImage = new QImage(width, height, QImage::Format_RGB32);
             }
             
-            bufferLength = rowBytes * videoFrame->GetHeight();
+            imageBufferLength = rowBytes * videoFrame->GetHeight();
 
             if (videoFrame->GetBytes((void**) &imageBuffer) != S_OK)
             {
                 std::cout << "failed to fill buffer\n";
-                delete newImage;
+                if (outputToQImage) {
+                    delete newImage;
+                }
                 videoFrameContinue = false;
             }
         }
@@ -326,10 +352,10 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
             }
 
             // copy buffer content to rawImage
-            if (rawImageLength < bufferLength) {
-                printf("buffer length %lu exceeds raw image length %lu, cannot copy raw image!\n", bufferLength, rawImageLength);
+            if (rawImageLength < imageBufferLength) {
+                printf("buffer length %lu exceeds raw image length %lu, cannot copy raw image!\n", imageBufferLength, rawImageLength);
             } else {
-                memcpy(rawImage, imageBuffer, bufferLength);
+                memcpy(rawImage, imageBuffer, imageBufferLength);
             }
 
             frameDrawMutex->unlock();
@@ -342,6 +368,38 @@ HRESULT STDMETHODCALLTYPE DataCallback::VideoInputFrameArrived(IDeckLinkVideoInp
         frameAcceptanceMutex.unlock();
     }
     
+    // forward data to all delayed listeners
+    delayedReceptionCallbacksMutex.lock();
+    if (!delayedReceptionCallbacks.empty()) {
+        unsigned long long timeOfReceptionMillis = timeOfReception.tv_sec * 1000 + lround((double) (timeOfReception.tv_nsec / 100000) / 10.0);
+        
+        std::vector<DelayedReceptionCallback*>::iterator it = delayedReceptionCallbacks.begin();
+        while (it != delayedReceptionCallbacks.end()) {
+            DelayedReceptionCallback *callback = (*it);
+            
+            // copy data and wrap in timestamped and indexed packets
+            TimedPacket *timedAudioPacket = 0;
+            if (audioLength != 0) {
+                char *tmp = new char[audioLength];
+                memcpy(tmp, audioBuffer, audioLength);
+                timedAudioPacket = new TimedPacket(currentAudioPacketIndex, timeOfReceptionMillis, tmp, audioLength);
+            }
+            
+            TimedPacket *timedVideoFrame = 0;
+            if (imageBufferLength != 0) {
+                char *tmp = new char[imageBufferLength];
+                memcpy(tmp, imageBuffer, imageBufferLength);
+                timedVideoFrame = new TimedPacket(currentVideoFrameIndex, timeOfReceptionMillis, tmp, imageBufferLength);
+            }
+            
+            // forward packets
+            callback->dataReceived(timedAudioPacket, timedVideoFrame);
+            
+            it++;
+        }
+    }
+    delayedReceptionCallbacksMutex.unlock();
+    
     return S_OK;
 };
 
@@ -350,4 +408,12 @@ void DataCallback::toggleCapture()
     frameAcceptanceMutex.lock();
     skipFrames = !skipFrames;
     frameAcceptanceMutex.unlock();
+}
+
+void DataCallback::registerDelayedReceptionCallback(DelayedReceptionCallback *callback) {
+    if (callback != 0) {
+        delayedReceptionCallbacksMutex.lock();
+        delayedReceptionCallbacks.push_back(callback);
+        delayedReceptionCallbacksMutex.unlock();
+    }
 }

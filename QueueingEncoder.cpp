@@ -11,7 +11,7 @@ QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
     encodedFrameQueue.configure(timeshiftMillis, 0);
     
     for (int i=0; i<numEncoderThreads; i++) {
-        jpegEncoders.push_back(new JPEGEncoder());
+        jpegEncoders.push_back(new JPEGEncoder(&rawFrameQueue, &encodedFrameQueue));
     }
 }
 

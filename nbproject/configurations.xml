@@ -100,6 +100,7 @@
             <linkerOptionItem>`pkg-config --libs xv`</linkerOptionItem>
             <linkerOptionItem>`pkg-config --libs libpulse`</linkerOptionItem>
             <linkerOptionItem>`pkg-config --libs libpulse-simple`</linkerOptionItem>
+            <linkerLibLibItem>jpeg</linkerLibLibItem>
           </linkerLibItems>
         </linkerTool>
       </compileType>

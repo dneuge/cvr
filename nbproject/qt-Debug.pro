@@ -21,5 +21,5 @@ QMAKE_CC = gcc
 QMAKE_CXX = g++
 DEFINES += 
 INCLUDEPATH += "/mnt/data/home/XXXXXX/Downloads/Blackmagic DeckLink SDK 9.7.7/Linux/include" 
-LIBS += 
+LIBS += -ljpeg  
 QT += multimedia

@@ -545,7 +545,7 @@ void MatroskaEncoder::checkAndHandleEndOfRecording() {
 }
 
 void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
-    printf("got audio packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
+    //printf("got audio packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
     
     // check for terminating packet
     if (timedPacket->dataLength == 0) {
@@ -571,7 +571,7 @@ void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
 }
 
 void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
-    printf("got video packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
+    //printf("got video packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
     
     // check for terminating packet
     if (timedPacket->dataLength == 0) {

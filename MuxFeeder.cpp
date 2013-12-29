@@ -61,14 +61,14 @@ void MuxFeeder::feedEncoder() {
         
         // only continue if we got an encoder, else sleep and try again
         if (containerEncoder == 0) {
-            printf("MuxFeeder: no container encoder set\n"); // DEBUG
+            //printf("MuxFeeder: no container encoder set\n"); // DEBUG
             
             mutex.unlock();
             msleep(INACTIVITY_SLEEP_MILLIS);
             continue;
         }
         
-        printf("MuxFeeder iteration\n"); // DEBUG
+        //printf("MuxFeeder iteration\n"); // DEBUG
         
         // get audio packet if we got none
         // NOTE: we can pop it unconditionally as audio packets will always be in order
@@ -92,7 +92,7 @@ void MuxFeeder::feedEncoder() {
         // discard outdated packets
         // FIXME: consider overflow of 64 bit index numbers? (how long would a recording have to be to make this an issue?)
         if ((currentAudioPacket != 0) && (currentAudioPacket->index < expectedAudioIndex)) {
-            printf("MuxFeeder dropping audio packet with outdated index %lld\n", currentAudioPacket->index); // DEBUG
+            //printf("MuxFeeder dropping audio packet with outdated index %lld\n", currentAudioPacket->index); // DEBUG
             
             delete currentAudioPacket->data;
             delete currentAudioPacket;
@@ -100,7 +100,7 @@ void MuxFeeder::feedEncoder() {
             currentAudioPacket = 0;
         }
         if ((currentVideoFrame != 0) && (currentVideoFrame->index < expectedVideoIndex)) {
-            printf("MuxFeeder dropping video frame with outdated index %lld\n", currentVideoFrame->index); // DEBUG
+            //printf("MuxFeeder dropping video frame with outdated index %lld\n", currentVideoFrame->index); // DEBUG
             
             delete currentVideoFrame->data;
             delete currentVideoFrame;
@@ -110,7 +110,7 @@ void MuxFeeder::feedEncoder() {
         
         // wait if either stream data is missing (not possible to do the comparisons below)
         if ((currentAudioPacket == 0) || (currentVideoFrame == 0)) {
-            printf("MuxFeeder is missing packet type to continue\n"); // DEBUG
+            //printf("MuxFeeder is missing packet type to continue\n"); // DEBUG
             
             mutex.unlock();
             msleep(INACTIVITY_SLEEP_MILLIS);
@@ -138,21 +138,21 @@ void MuxFeeder::feedEncoder() {
             audioStreamTerminated = false;
             videoStreamTerminated = false;
         } else if (audioStreamTerminated) {
-            printf("MuxFeeder: audio stream has been terminated, only forwarding video frames\n"); // DEBUG
+            //printf("MuxFeeder: audio stream has been terminated, only forwarding video frames\n"); // DEBUG
             
             // audio stream already terminated, only forward video frames to keep terminating packet waiting
             expectedVideoIndex = currentVideoFrame->index + 1;
             containerEncoder->addVideoFrame(currentVideoFrame);
             currentVideoFrame = 0;
         } else if (videoStreamTerminated) {
-            printf("MuxFeeder: video stream has been terminated, only forwarding audio packets\n"); // DEBUG
+            //printf("MuxFeeder: video stream has been terminated, only forwarding audio packets\n"); // DEBUG
             
             // video stream already terminated, only forward audio packets to keep terminating packet waiting
             expectedAudioIndex = currentAudioPacket->index + 1;
             containerEncoder->addAudioPacket(currentAudioPacket);
             currentAudioPacket = 0;
         } else {
-            printf("MuxFeeder: forwarding packet\n"); // DEBUG
+            //printf("MuxFeeder: forwarding packet\n"); // DEBUG
             
             // check if audio precedes video frame
             bool audioPrecedesVideo = (currentAudioPacket->timestampMillis < currentVideoFrame->timestampMillis);

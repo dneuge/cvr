@@ -17,7 +17,7 @@ class MatroskaEncoder {
         bool isSuccess();
         void writeFileHeader();
         void addVideoFrame(TimedPacket*);
-        //addAudioPacket();
+        void addAudioPacket(TimedPacket*);
         void closeFile();
     
     private:
@@ -39,9 +39,14 @@ class MatroskaEncoder {
         unsigned long long fileOffsetClusterPayload;
         unsigned long long initialTimestamp;
         
+        // signalling termination
+        bool audioStreamTerminated;
+        bool videoStreamTerminated;
+        
         unsigned char* generateUniqueRandomID();
         bool checkIDAlreadyUsed(unsigned char*);
         void finalizeCluster(unsigned long long);
+        void checkAndHandleEndOfRecording();
 };
 
 #endif	/* MATROSKAENCODER_H */

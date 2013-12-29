@@ -12,3 +12,4 @@
 ^nbproject/qt-Debug\.mk$
 ^nbproject/private/
 ^testdata
+\.mkv$

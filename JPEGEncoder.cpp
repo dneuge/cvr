@@ -92,10 +92,10 @@ unsigned long JPEGEncoder::encodeImage(char* originalImage, unsigned long long o
     jpeg_mem_dest(&cinfo, (unsigned char**) newImage, &outLength);
     
     // set options
-    cinfo.image_width = 1280 / 2;
+    cinfo.image_width = 1280;
     cinfo.image_height = 720;
-    cinfo.input_components = 4;
-    cinfo.in_color_space = JCS_UNKNOWN; // raw image is UYVY, we try to encode that without conversion
+    cinfo.input_components = 3;
+    cinfo.in_color_space = JCS_YCbCr; // raw image is UYVY, we try to encode that without conversion
     
     jpeg_set_defaults(&cinfo);
     jpeg_set_quality(&cinfo, JPEG_QUALITY, true);
@@ -104,17 +104,38 @@ unsigned long JPEGEncoder::encodeImage(char* originalImage, unsigned long long o
     jpeg_start_compress(&cinfo, true);
     
     JSAMPROW rowPointer[1];
-    long bytesPerRow = cinfo.input_components * cinfo.image_width;
-    
-    void *lastRow = originalImage + originalImageLength - (cinfo.image_width * cinfo.input_components);
-    void *linePointer = originalImage;
-    rowPointer[0] = (unsigned char*) linePointer;
-    while (rowPointer[0] <= lastRow) {
+    long bytesPerRow = 4 * cinfo.image_width / 2;
+    unsigned char *lastRow = (unsigned char*) originalImage + originalImageLength - bytesPerRow;
+    unsigned char *rowStart = (unsigned char*) originalImage;
+    unsigned char *rowPixels = new unsigned char[cinfo.image_width * cinfo.input_components];
+    rowPointer[0] = rowPixels;
+    while (rowStart <= lastRow) {
+        unsigned int byteInRow = 0;
+        unsigned char *readPointer = rowStart;
+        unsigned char *lastPixel = rowStart + bytesPerRow - 4;
+        while (readPointer <= lastPixel) {
+            unsigned char cb0 = readPointer[0]; // U
+            unsigned char y0  = readPointer[1]; // Y
+            unsigned char cr0 = readPointer[2]; // V
+            unsigned char y1  = readPointer[3]; // Y
+            
+            rowPixels[byteInRow++] = y0;
+            rowPixels[byteInRow++] = cb0;
+            rowPixels[byteInRow++] = cr0;
+            
+            rowPixels[byteInRow++] = y1;
+            rowPixels[byteInRow++] = cb0;
+            rowPixels[byteInRow++] = cr0;
+            
+            readPointer += 4;
+        }
+        
         jpeg_write_scanlines(&cinfo, rowPointer, 1);
         
-        linePointer += bytesPerRow;
-        rowPointer[0] = (unsigned char*) linePointer;
+        rowStart += bytesPerRow;
     }
+    
+    delete rowPixels;
     
     jpeg_finish_compress(&cinfo);
     

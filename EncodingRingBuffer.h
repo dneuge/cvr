@@ -16,6 +16,8 @@ class EncodingRingBuffer : public QObject {
         void configure(unsigned long, unsigned long);
         bool addPacket(TimedPacket*);
         TimedPacket* popFirst();
+        TimedPacket* popFirstIfExpectedIndexOrMinSize(unsigned long long, unsigned long);
+        bool containsZeroLengthPacket();
     
     private:
         std::vector<TimedPacket*> packets;

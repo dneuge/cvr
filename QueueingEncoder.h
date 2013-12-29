@@ -17,15 +17,19 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
     public:
         QueueingEncoder(int);
         virtual void dataReceived(TimedPacket* audioPacket, TimedPacket* videoFrame);
+        MuxFeeder *muxFeeder;
+        void signalEndOfRecording();
         
     private:
         std::vector<JPEGEncoder*> jpegEncoders;
         
-        MuxFeeder muxFeeder;
-        
         EncodingRingBuffer rawFrameQueue;
         EncodingRingBuffer encodedFrameQueue;
         EncodingRingBuffer audioQueue;
+        
+        QMutex mutex;
+        unsigned long long nextExpectedAudioIndex;
+        unsigned long long nextExpectedVideoIndex;
 };
 
 

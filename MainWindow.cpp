@@ -1,8 +1,12 @@
+#include "MainWindow.h"
+
+#include <time.h>
+#include <stdio.h>
+
 #include <QtGui>
 #include <QAction>
 #include <QKeySequence>
 
-#include "MainWindow.h"
 #include "DummyReceptionCallback.h"
 #include "QueueingEncoder.h"
 
@@ -26,19 +30,72 @@ MainWindow::MainWindow(QApplication *application)
     
     resize(1280, 720);
     
+    // hot-key SPACE toggles capturing (used to resync)
     QAction *actionToggleCapture = new QAction(this);
     actionToggleCapture->setShortcut(QKeySequence(Qt::Key_Space));
     connect(actionToggleCapture, SIGNAL(triggered()), renderingTest->dataCallback, SLOT(toggleCapture()));
     addAction(actionToggleCapture);
     
+    // hot-key ESC quits application
     QAction *actionQuit = new QAction(this);
     actionQuit->setShortcut(QKeySequence(Qt::Key_Escape));
     connect(actionQuit, SIGNAL(triggered()), application, SLOT(quit()));
     addAction(actionQuit);
     
+    // left double click toggles full screen display
     connect(renderingTest, SIGNAL(doubleClicked()), this, SLOT(toggleRealFullscreen()));
+    
+    // right double click toggles maximized borderless window ("fake full screen")
     connect(renderingTest, SIGNAL(doubleClickedRight()), this, SLOT(toggleFakeFullscreen()));
+    
+    // hot-key RETURN starts new recording
+    QAction *actionStartRecording = new QAction(this);
+    actionStartRecording->setShortcut(QKeySequence(Qt::Key_Return));
+    connect(actionStartRecording, SIGNAL(triggered()), this, SLOT(startRecording()));
+    addAction(actionStartRecording);
+    
+    // hot-key BACKSPACE stops recording
+    QAction *actionStopRecording = new QAction(this);
+    actionStopRecording->setShortcut(QKeySequence(Qt::Key_Backspace));
+    connect(actionStopRecording, SIGNAL(triggered()), this, SLOT(stopRecording()));
+    addAction(actionStopRecording);
 }
+
+void MainWindow::startRecording() {
+    time_t currentTime;
+    char fileName[256];
+    
+    time(&currentTime);
+    struct tm *currentLocalTime = localtime(&currentTime);
+    
+    strftime(fileName, 256, "cvr_recording_%F_%H-%M-%S.mkv", currentLocalTime);
+    
+    //delete currentLocalTime;
+    
+    bool success = true;
+    
+    MatroskaEncoder *containerEncoder = new MatroskaEncoder(fileName);
+    success &= containerEncoder->isSuccess();
+    
+    if (success) {
+        containerEncoder->writeFileHeader();
+        success &= containerEncoder->isSuccess();
+    }
+    
+    if (success) {
+        success &= encoder->muxFeeder->setContainerEncoder(containerEncoder);
+    }
+    
+    if (!success) {
+        printf("failed to start recording to %s\n", fileName);
+        delete containerEncoder;
+    }
+}
+
+void MainWindow::stopRecording() {
+    encoder->signalEndOfRecording();
+}
+
 
 void MainWindow::toggleFullscreen(bool maximizeInstead) {
     Qt::WindowFlags flags = windowFlags();

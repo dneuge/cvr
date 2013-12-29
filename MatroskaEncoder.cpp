@@ -11,6 +11,10 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     initialTimestamp = 0;
     fileOffsetClusterSize = 0;
     fileOffsetClusterPayload = 0;
+    audioStreamTerminated = false;
+    videoStreamTerminated = false;
+    
+    printf("starting new recording to file %s\n", fileName); // DEBUG
     
     // open file for output
     fh = fopen(fileName, "wb+");
@@ -209,11 +213,14 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     videoSettingsNode->addChildNode(node);
     
     /*
-    // colour space doesn't appear to be used by any player; mplayer gets confused and refuses to play if set to any YUV format
+    // specifying any colour space will cause decoders to fail
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("ColourSpace"));
     //node->copyBinaryContent((unsigned char[]) {0x36, 0x31, 0x56, 0x59}, 4); // YV16, which seems to be the planar equivalent of UYVY (which we get from the capture card); see http://fourcc.org/yuv.php
-    //node->copyBinaryContent((unsigned char[]) {0x59, 0x56, 0x59, 0x55}, 4); // UYVY
-    node->copyBinaryContent((unsigned char[]) {0x00, 0x00, 0x00, 0x00}, 4); // RGB (at least according to fourcc.org)
+    //node->copyBinaryContent((unsigned char[]) {0x59, 0x56, 0x59, 0x55}, 4); // UYVY (written in reverse: YVYU)
+    //node->copyBinaryContent((unsigned char[]) {0x55, 0x59, 0x56, 0x59}, 4); // UYVY
+    //node->copyBinaryContent((unsigned char[]) {0x00, 0x00, 0x00, 0x00}, 4); // RGB (at least according to fourcc.org)
+    //node->copyBinaryContent((unsigned char[]) {0x32, 0x55, 0x59, 0x49}, 4); // IYU2
+    //node->copyBinaryContent((unsigned char[]) {0x49, 0x59, 0x55, 0x32}, 4); // IYU2 (in reverse reverse)
     videoSettingsNode->addChildNode(node);
     */
     
@@ -364,7 +371,13 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     fileOffsetSegmentPayload = segmentNode->getAbsolutePayloadOffset();
 }
 
+bool MatroskaEncoder::isSuccess() {
+    return success;
+}
+
 void MatroskaEncoder::writeFileHeader() {
+    printf("writing file header\n"); // DEBUG
+    
     // serialize once more to get the latest data
     // (required after reference offsets have been set)
     rootNode->serialize();
@@ -378,6 +391,8 @@ void MatroskaEncoder::writeFileHeader() {
 }
 
 void MatroskaEncoder::closeFile() {
+    printf("finalizing recorded file\n"); // DEBUG
+    
     unsigned long long offsetAfterLastCluster = ftell(fh);
     
     // close any open cluster
@@ -465,6 +480,8 @@ void MatroskaEncoder::closeFile() {
     // flush to disk and close handle
     fflush(fh);
     fclose(fh);
+    
+    printf("recording finished\n"); // DEBUG
 }
 
 bool MatroskaEncoder::checkIDAlreadyUsed(unsigned char *checkID) {
@@ -520,7 +537,60 @@ void MatroskaEncoder::finalizeCluster(unsigned long long fileOffsetBefore) {
     }
 }
 
+void MatroskaEncoder::checkAndHandleEndOfRecording() {
+    if (audioStreamTerminated && videoStreamTerminated) {
+        printf("end of recording\n"); // DEBUG
+        closeFile();
+    }
+}
+
+void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
+    printf("got audio packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
+    
+    // check for terminating packet
+    if (timedPacket->dataLength == 0) {
+        audioStreamTerminated = true;
+        checkAndHandleEndOfRecording();
+    }
+    
+    // discard any packets after end of recording
+    if (audioStreamTerminated) {
+        // avoid memory leak in case we got additional frames after EOR
+        if ((timedPacket->dataLength > 0) && (timedPacket->data != 0)) {
+            delete timedPacket->data;
+        }
+        
+        delete timedPacket;
+        
+        return;
+    }
+    
+    // DEBUG: just consume
+    delete timedPacket->data;
+    delete timedPacket;
+}
+
 void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
+    printf("got video packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
+    
+    // check for terminating packet
+    if (timedPacket->dataLength == 0) {
+        videoStreamTerminated = true;
+        checkAndHandleEndOfRecording();
+    }
+    
+    // discard any frames after end of recording
+    if (videoStreamTerminated) {
+        // avoid memory leak in case we got additional frames after EOR
+        if ((timedPacket->dataLength > 0) && (timedPacket->data != 0)) {
+            delete timedPacket->data;
+        }
+        
+        delete timedPacket;
+        
+        return;
+    }
+    
     // remember timestamp if this frame start the recording
     if (initialTimestamp == 0) {
         initialTimestamp = timedPacket->timestampMillis;

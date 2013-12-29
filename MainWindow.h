@@ -17,6 +17,8 @@ class MainWindow : public QWidget
     public slots:
         void toggleRealFullscreen();
         void toggleFakeFullscreen();
+        void startRecording();
+        void stopRecording();
     
     private:
         RenderingTest *renderingTest;

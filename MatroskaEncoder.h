@@ -18,6 +18,8 @@ class MatroskaEncoder {
         void writeFileHeader();
         void addVideoFrame(TimedPacket*);
         void addAudioPacket(TimedPacket*);
+        void consumeVideoFrame(TimedPacket*);
+        void consumeAudioPacket(TimedPacket*);
         void closeFile();
     
     private:
@@ -43,6 +45,7 @@ class MatroskaEncoder {
         bool audioStreamTerminated;
         bool videoStreamTerminated;
         
+        void freePacket(TimedPacket*);
         unsigned char* generateUniqueRandomID();
         bool checkIDAlreadyUsed(unsigned char*);
         void finalizeCluster(unsigned long long);

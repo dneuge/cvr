@@ -544,6 +544,24 @@ void MatroskaEncoder::checkAndHandleEndOfRecording() {
     }
 }
 
+void MatroskaEncoder::freePacket(TimedPacket *timedPacket) {
+    if ((timedPacket->data != 0) && (timedPacket->dataLength > 0)) {
+        delete timedPacket->data;
+    }
+    
+    delete timedPacket;
+}
+
+void MatroskaEncoder::consumeAudioPacket(TimedPacket *timedPacket) {
+    addAudioPacket(timedPacket);
+    freePacket(timedPacket);
+}
+
+void MatroskaEncoder::consumeVideoFrame(TimedPacket *timedPacket) {
+    addVideoFrame(timedPacket);
+    freePacket(timedPacket);
+}
+
 void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
     //printf("got audio packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
     
@@ -564,10 +582,6 @@ void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
         
         return;
     }
-    
-    // DEBUG: just consume
-    delete timedPacket->data;
-    delete timedPacket;
 }
 
 void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
@@ -580,14 +594,8 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     }
     
     // discard any frames after end of recording
+    // NOTE: must free after use
     if (videoStreamTerminated) {
-        // avoid memory leak in case we got additional frames after EOR
-        if ((timedPacket->dataLength > 0) && (timedPacket->data != 0)) {
-            delete timedPacket->data;
-        }
-        
-        delete timedPacket;
-        
         return;
     }
     

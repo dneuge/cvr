@@ -126,8 +126,8 @@ void MuxFeeder::feedEncoder() {
             printf("MuxFeeder: both streams are terminated\n"); // DEBUG
             
             // flush final packets to container encoder which will shutdown upon reception
-            containerEncoder->addAudioPacket(currentAudioPacket);
-            containerEncoder->addVideoFrame(currentVideoFrame);
+            containerEncoder->consumeAudioPacket(currentAudioPacket);
+            containerEncoder->consumeVideoFrame(currentVideoFrame);
             currentAudioPacket = 0;
             currentVideoFrame = 0;
             
@@ -142,14 +142,14 @@ void MuxFeeder::feedEncoder() {
             
             // audio stream already terminated, only forward video frames to keep terminating packet waiting
             expectedVideoIndex = currentVideoFrame->index + 1;
-            containerEncoder->addVideoFrame(currentVideoFrame);
+            containerEncoder->consumeVideoFrame(currentVideoFrame);
             currentVideoFrame = 0;
         } else if (videoStreamTerminated) {
             //printf("MuxFeeder: video stream has been terminated, only forwarding audio packets\n"); // DEBUG
             
             // video stream already terminated, only forward audio packets to keep terminating packet waiting
             expectedAudioIndex = currentAudioPacket->index + 1;
-            containerEncoder->addAudioPacket(currentAudioPacket);
+            containerEncoder->consumeAudioPacket(currentAudioPacket);
             currentAudioPacket = 0;
         } else {
             //printf("MuxFeeder: forwarding packet\n"); // DEBUG
@@ -161,12 +161,12 @@ void MuxFeeder::feedEncoder() {
             if (audioPrecedesVideo) {
                 // forward audio packet to container encoder
                 expectedAudioIndex = currentAudioPacket->index + 1;
-                containerEncoder->addAudioPacket(currentAudioPacket);
+                containerEncoder->consumeAudioPacket(currentAudioPacket);
                 currentAudioPacket = 0;
             } else {
                 // forward video frame to container encoder
                 expectedVideoIndex = currentVideoFrame->index + 1;
-                containerEncoder->addVideoFrame(currentVideoFrame);
+                containerEncoder->consumeVideoFrame(currentVideoFrame);
                 currentVideoFrame = 0;
             }
         }

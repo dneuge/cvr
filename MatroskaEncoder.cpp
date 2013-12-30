@@ -572,14 +572,8 @@ void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
     }
     
     // discard any packets after end of recording
+    // NOTE: caller must free after use
     if (audioStreamTerminated) {
-        // avoid memory leak in case we got additional frames after EOR
-        if ((timedPacket->dataLength > 0) && (timedPacket->data != 0)) {
-            delete timedPacket->data;
-        }
-        
-        delete timedPacket;
-        
         return;
     }
 }
@@ -594,7 +588,7 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     }
     
     // discard any frames after end of recording
-    // NOTE: must free after use
+    // NOTE: caller must free after use
     if (videoStreamTerminated) {
         return;
     }

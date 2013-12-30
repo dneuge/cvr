@@ -53,7 +53,7 @@ class MatroskaEncoder {
         void finalizeCluster(unsigned long long);
         void checkAndHandleEndOfRecording();
         void startNewCluster();
-        void writeSimpleBlock(TimedPacket *timedPacket, unsigned int timecodeRelativeToCluster);
+        void writeSimpleBlock(TimedPacket*, unsigned int, unsigned char);
 };
 
 #endif	/* MATROSKAENCODER_H */

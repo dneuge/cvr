@@ -568,6 +568,9 @@ void MatroskaEncoder::consumeVideoFrame(TimedPacket *timedPacket) {
 }
 
 void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
+    // FIXME: audio packets without frequent video frames will cause a timecode overflow, start clusters as needed
+    // FIXME: cue points are being created much too frequent
+    
     //printf("got audio packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
     
     // check for terminating packet
@@ -581,6 +584,20 @@ void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
     if (audioStreamTerminated) {
         return;
     }
+    
+    // discard if we have no cluster yet (i.e. no video frame arrived yet)
+    if (clusterTimestampRelativeToRecording == 0) {
+        return;
+    }
+    
+    // calculate timestamp relative to start of recording
+    relativeTimestampRecording = timedPacket->timestampMillis - initialTimestamp;
+    
+    // add audio packet
+    writeSimpleBlock(timedPacket, relativeTimestampRecording - clusterTimestampRelativeToRecording, TRACK_NUMBER_AUDIO);
+    
+    // add cue point
+    cuePoints.push_back(new MatroskaCuePoint(relativeTimestampRecording, 0, fileOffsetCluster));
 }
 
 void MatroskaEncoder::startNewCluster() {
@@ -643,20 +660,20 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     startNewCluster();
     
     // add video frame
-    writeSimpleBlock(timedPacket, relativeTimestampRecording - clusterTimestampRelativeToRecording);
+    writeSimpleBlock(timedPacket, relativeTimestampRecording - clusterTimestampRelativeToRecording, TRACK_NUMBER_VIDEO);
     
     // add cue point
     cuePoints.push_back(new MatroskaCuePoint(relativeTimestampRecording, fileOffsetCluster, 0));
 }
 
-void MatroskaEncoder::writeSimpleBlock(TimedPacket *timedPacket, unsigned int timecodeRelativeToCluster) {
+void MatroskaEncoder::writeSimpleBlock(TimedPacket *timedPacket, unsigned int timecodeRelativeToCluster, unsigned char trackNumber) {
     // SimpleBlock needs prefixed header
     unsigned long long len = timedPacket->dataLength + 6;
     unsigned char *out = new unsigned char[len];
     memcpy(out + 6, timedPacket->data, timedPacket->dataLength);
     
     // see: http://www.matroska.org/technical/specs/index.html#simpleblock_structure
-    out[0] = 0b10000001; // 0x01 for video track number, identified as 8 bit (encoded like EBML data size etc.), thus prefixed MSB 1
+    out[0] = 0b10000000 | (trackNumber & 0b01111111); // 0x01 for video track number, identified as 8 bit (encoded like EBML data size etc.), thus prefixed MSB 1
     out[1] = (unsigned char) ((timecodeRelativeToCluster >> 8) & 0x0F); // timecode upper byte in BE
     out[2] = (unsigned char)  (timecodeRelativeToCluster       & 0x0F); // timecode lower byte in BE
     out[3] = 0b10000001; // keyframe, not invisible, no lacing, discardable

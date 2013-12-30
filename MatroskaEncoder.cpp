@@ -11,6 +11,8 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     initialTimestamp = 0;
     fileOffsetClusterSize = 0;
     fileOffsetClusterPayload = 0;
+    relativeTimestampRecording = 0;
+    clusterTimestampRelativeToRecording = 0;
     audioStreamTerminated = false;
     videoStreamTerminated = false;
     
@@ -594,8 +596,10 @@ void MatroskaEncoder::startNewCluster() {
     EBMLTreeNode *node;
     EBMLTreeNode *clusterNode = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Cluster"));
     
+    clusterTimestampRelativeToRecording = relativeTimestampRecording;
+    
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("Timecode"));
-    node->setIntegerContent(relativeTimestampRecording);
+    node->setIntegerContent(clusterTimestampRelativeToRecording);
     clusterNode->addChildNode(node);
     
     clusterNode->serialize();
@@ -639,6 +643,13 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     startNewCluster();
     
     // add video frame
+    writeSimpleBlock(timedPacket, relativeTimestampRecording - clusterTimestampRelativeToRecording);
+    
+    // add cue point
+    cuePoints.push_back(new MatroskaCuePoint(relativeTimestampRecording, fileOffsetCluster, 0));
+}
+
+void MatroskaEncoder::writeSimpleBlock(TimedPacket *timedPacket, unsigned int timecodeRelativeToCluster) {
     // SimpleBlock needs prefixed header
     unsigned long long len = timedPacket->dataLength + 6;
     unsigned char *out = new unsigned char[len];
@@ -646,8 +657,8 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     
     // see: http://www.matroska.org/technical/specs/index.html#simpleblock_structure
     out[0] = 0b10000001; // 0x01 for video track number, identified as 8 bit (encoded like EBML data size etc.), thus prefixed MSB 1
-    out[1] = 0x00; // timecode upper byte; timecode is 0 because it matches the cluster timecode
-    out[2] = 0x00; // timecode lower byte
+    out[1] = (unsigned char) ((timecodeRelativeToCluster >> 8) & 0x0F); // timecode upper byte in BE
+    out[2] = (unsigned char)  (timecodeRelativeToCluster       & 0x0F); // timecode lower byte in BE
     out[3] = 0b10000001; // keyframe, not invisible, no lacing, discardable
     out[4] = 0x00; // no frames in lace
     out[5] = 0x00; // lace size (0 because we use none)
@@ -659,9 +670,6 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     fwrite(simpleBlockContent, node->getOuterSize(), 1, fh);
     delete simpleBlockContent;
     
-    // add cue point
-    cuePoints.push_back(new MatroskaCuePoint(relativeTimestampRecording, fileOffsetCluster, 0));
-    
-    // free memory
     delete node; // also deletes out
 }
+

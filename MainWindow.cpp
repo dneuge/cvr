@@ -18,6 +18,7 @@ MainWindow::MainWindow(QApplication *application)
     //renderingTest->dataCallback->registerDelayedReceptionCallback(new DummyReceptionCallback());
     
     encoder = new QueueingEncoder(2);
+    encoder->setFrameDivisionModulo(2); // encode every nth frame
     renderingTest->dataCallback->registerDelayedReceptionCallback(encoder);
     
     QGridLayout *mainLayout = new QGridLayout;

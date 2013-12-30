@@ -19,6 +19,7 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
         virtual void dataReceived(TimedPacket* audioPacket, TimedPacket* videoFrame);
         MuxFeeder *muxFeeder;
         void signalEndOfRecording();
+        void setFrameDivisionModulo(unsigned char);
         
     private:
         std::vector<JPEGEncoder*> jpegEncoders;
@@ -30,6 +31,9 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
         QMutex mutex;
         unsigned long long nextAudioIndex;
         unsigned long long nextVideoIndex;
+        
+        unsigned char frameDivisionModulo;
+        unsigned char frameDivisionCounter;
 };
 
 

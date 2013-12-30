@@ -36,7 +36,9 @@ EBMLTreeNode::~EBMLTreeNode() {
     };
     
     // delete own content
-    delete binaryContent;
+    if (binaryContent != 0) {
+        delete binaryContent;
+    }
 }
 
 /**

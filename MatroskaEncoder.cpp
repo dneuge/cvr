@@ -447,7 +447,9 @@ void MatroskaEncoder::closeFile() {
     
     // write cue points to disk
     cuesNode->serialize();
-    fwrite(cuesNode->getOuterContent(), cuesNode->getOuterSize(), 1, fh);
+    unsigned char* cuesContent = cuesNode->getOuterContent();
+    fwrite(cuesContent, cuesNode->getOuterSize(), 1, fh);
+    delete cuesContent;
     
     // remember total file size, file won't grow any more
     unsigned long long totalFileSize = ftell(fh);
@@ -624,7 +626,9 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     fileOffsetClusterPayload = clusterNode->getAbsolutePayloadOffset();
     fileOffsetClusterSize = clusterNode->getAbsoluteDataSizeOffset();
     
-    fwrite(clusterNode->getOuterContent(), clusterNode->getOuterSize(), 1, fh);
+    unsigned char* clusterContent = clusterNode->getOuterContent();
+    fwrite(clusterContent, clusterNode->getOuterSize(), 1, fh);
+    delete clusterContent;
     
     // add video frame
     // SimpleBlock needs prefixed header
@@ -643,7 +647,9 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SimpleBlock"));
     node->setBinaryContent(out, len);
     node->serialize();
-    fwrite(node->getOuterContent(), node->getOuterSize(), 1, fh);
+    unsigned char* simpleBlockContent = node->getOuterContent();
+    fwrite(simpleBlockContent, node->getOuterSize(), 1, fh);
+    delete simpleBlockContent;
     
     // add cue point
     cuePoints.push_back(new MatroskaCuePoint(relativeTimestampRecording, fileOffsetCluster, 0));

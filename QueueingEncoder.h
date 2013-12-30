@@ -28,8 +28,8 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
         EncodingRingBuffer audioQueue;
         
         QMutex mutex;
-        unsigned long long nextExpectedAudioIndex;
-        unsigned long long nextExpectedVideoIndex;
+        unsigned long long nextAudioIndex;
+        unsigned long long nextVideoIndex;
 };
 
 

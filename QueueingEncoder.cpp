@@ -6,8 +6,8 @@
 QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
     unsigned long timeshiftMillis = 30000;
     unsigned long maxRawFrames = 30;
-    nextExpectedAudioIndex = 0;
-    nextExpectedVideoIndex = 0;
+    nextAudioIndex = 0;
+    nextVideoIndex = 0;
     
     audioQueue.configure(timeshiftMillis, 0);
     rawFrameQueue.configure(0, maxRawFrames);
@@ -22,30 +22,31 @@ QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
 
 void QueueingEncoder::signalEndOfRecording() {
     // FIXME: maybe insert conditionally? (recording has to be running/no other termination packets have to be in queues already)
-    // QUESTION: use expected indices to override received indices and thus avoid potential index overflow issues?
     
     printf("signalling end of recording\n");
-    
-    mutex.lock();
     
     timespec currentTime;
     clock_gettime(CLOCK_MONOTONIC, &currentTime);
     unsigned long long currentTimeMillis = currentTime.tv_sec * 1000 + lround((double) (currentTime.tv_nsec / 100000) / 10.0);
     
-    TimedPacket *audioPacket = new TimedPacket(nextExpectedAudioIndex, currentTimeMillis, 0, 0);
-    TimedPacket *videoFrame = new TimedPacket(nextExpectedVideoIndex, currentTimeMillis, 0, 0);
+    mutex.lock();
+    TimedPacket *audioPacket = new TimedPacket(nextAudioIndex++, currentTimeMillis, 0, 0);
+    TimedPacket *videoFrame = new TimedPacket(nextVideoIndex++, currentTimeMillis, 0, 0);
+    mutex.unlock();
     
     // add directly to output queues (skip encoders)
     audioQueue.addPacket(audioPacket);
     encodedFrameQueue.addPacket(videoFrame);
-    
-    mutex.unlock();
 }
 
 void QueueingEncoder::dataReceived(TimedPacket* audioPacket, TimedPacket* videoFrame) {
+    // packets/frames are reindexed at this point for a few reasons:
+    //  - skipped frames (frame division) would look like dropped frames to muxer if we wouldn't reindex
+    //  - being able to add EOR signalling packets with a unique index number
+    
     if (audioPacket != 0) {
         mutex.lock();
-        nextExpectedAudioIndex = audioPacket->index + 1;
+        audioPacket->index = nextAudioIndex++;
         mutex.unlock();
         
         if (!audioQueue.addPacket(audioPacket)) {
@@ -57,9 +58,10 @@ void QueueingEncoder::dataReceived(TimedPacket* audioPacket, TimedPacket* videoF
         }
     }
     
+    // TODO: frame division
     if (videoFrame != 0) {
         mutex.lock();
-        nextExpectedVideoIndex = videoFrame->index + 1;
+        videoFrame->index = nextVideoIndex++;
         mutex.unlock();
         
         if (!rawFrameQueue.addPacket(videoFrame)) {

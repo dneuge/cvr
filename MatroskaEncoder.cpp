@@ -668,21 +668,18 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
 
 void MatroskaEncoder::writeSimpleBlock(TimedPacket *timedPacket, unsigned int timecodeRelativeToCluster, unsigned char trackNumber) {
     // SimpleBlock needs prefixed header
-    unsigned long long len = timedPacket->dataLength + 6;
+    unsigned long long len = timedPacket->dataLength + 4;
     unsigned char *out = new unsigned char[len];
-    memcpy(out + 6, timedPacket->data, timedPacket->dataLength);
+    memcpy(out + 4, timedPacket->data, timedPacket->dataLength);
     
     // see: http://www.matroska.org/technical/specs/index.html#simpleblock_structure
-    out[0] = 0b10000000 | (trackNumber & 0b01111111); // 0x01 for video track number, identified as 8 bit (encoded like EBML data size etc.), thus prefixed MSB 1
-    out[1] = (unsigned char) ((timecodeRelativeToCluster >> 8) & 0x0F); // timecode upper byte in BE
-    out[2] = (unsigned char)  (timecodeRelativeToCluster       & 0x0F); // timecode lower byte in BE
+    out[0] = 0b10000000 | (trackNumber & 0b01111111); // track number encoded like EBML data size, thus prefixed MSB 1 for 7-bit values
+    out[1] = (unsigned char) ((timecodeRelativeToCluster >> 8) & 0xFF); // timecode upper byte in BE
+    out[2] = (unsigned char)  (timecodeRelativeToCluster       & 0xFF); // timecode lower byte in BE
     out[3] = 0b10000001; // keyframe, not invisible, no lacing, discardable
-    out[4] = 0x00; // no frames in lace
-    out[5] = 0x00; // lace size (0 because we use none)
     
     EBMLTreeNode *node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SimpleBlock"));
     node->setBinaryContent(out, len);
-    node->serialize();
     unsigned char* simpleBlockContent = node->getOuterContent();
     fwrite(simpleBlockContent, node->getOuterSize(), 1, fh);
     delete simpleBlockContent;

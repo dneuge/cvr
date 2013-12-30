@@ -40,6 +40,7 @@ class MatroskaEncoder {
         unsigned long long fileOffsetClusterSize;
         unsigned long long fileOffsetClusterPayload;
         unsigned long long initialTimestamp;
+        unsigned long long relativeTimestampRecording;
         
         // signalling termination
         bool audioStreamTerminated;
@@ -50,6 +51,7 @@ class MatroskaEncoder {
         bool checkIDAlreadyUsed(unsigned char*);
         void finalizeCluster(unsigned long long);
         void checkAndHandleEndOfRecording();
+        void startNewCluster();
 };
 
 #endif	/* MATROSKAENCODER_H */

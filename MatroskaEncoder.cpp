@@ -526,6 +526,7 @@ unsigned char* MatroskaEncoder::generateUniqueRandomID() {
 }
 
 void MatroskaEncoder::finalizeCluster(unsigned long long fileOffsetBefore) {
+    // only if cluster is open
     if (fileOffsetClusterSize != 0) {
         // patch cluster size
         unsigned long long clusterSize = fileOffsetBefore - fileOffsetClusterPayload;
@@ -580,29 +581,7 @@ void MatroskaEncoder::addAudioPacket(TimedPacket* timedPacket) {
     }
 }
 
-void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
-    //printf("got video packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
-    
-    // check for terminating packet
-    if (timedPacket->dataLength == 0) {
-        videoStreamTerminated = true;
-        checkAndHandleEndOfRecording();
-    }
-    
-    // discard any frames after end of recording
-    // NOTE: caller must free after use
-    if (videoStreamTerminated) {
-        return;
-    }
-    
-    // remember timestamp if this frame start the recording
-    if (initialTimestamp == 0) {
-        initialTimestamp = timedPacket->timestampMillis;
-    }
-    
-    // calculate timestamp relative to start of recording
-    unsigned long long relativeTimestampRecording = timedPacket->timestampMillis - initialTimestamp;
-    
+void MatroskaEncoder::startNewCluster() {
     // remember file position
     unsigned long long fileOffsetBefore = ftell(fh);
     
@@ -630,6 +609,35 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     fwrite(clusterContent, clusterNode->getOuterSize(), 1, fh);
     delete clusterContent;
     
+    delete clusterNode;
+}
+
+void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
+    //printf("got video packet %lld of size %lld\n", timedPacket->index, timedPacket->dataLength); // DEBUG
+    
+    // check for terminating packet
+    if (timedPacket->dataLength == 0) {
+        videoStreamTerminated = true;
+        checkAndHandleEndOfRecording();
+    }
+    
+    // discard any frames after end of recording
+    // NOTE: caller must free after use
+    if (videoStreamTerminated) {
+        return;
+    }
+    
+    // remember timestamp if this frame start the recording
+    if (initialTimestamp == 0) {
+        initialTimestamp = timedPacket->timestampMillis;
+    }
+    
+    // calculate timestamp relative to start of recording
+    relativeTimestampRecording = timedPacket->timestampMillis - initialTimestamp;
+    
+    // video frames start a new cluster
+    startNewCluster();
+    
     // add video frame
     // SimpleBlock needs prefixed header
     unsigned long long len = timedPacket->dataLength + 6;
@@ -644,7 +652,7 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     out[4] = 0x00; // no frames in lace
     out[5] = 0x00; // lace size (0 because we use none)
     
-    node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SimpleBlock"));
+    EBMLTreeNode *node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SimpleBlock"));
     node->setBinaryContent(out, len);
     node->serialize();
     unsigned char* simpleBlockContent = node->getOuterContent();
@@ -656,5 +664,4 @@ void MatroskaEncoder::addVideoFrame(TimedPacket* timedPacket) {
     
     // free memory
     delete node; // also deletes out
-    delete clusterNode;
 }

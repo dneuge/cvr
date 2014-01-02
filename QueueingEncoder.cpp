@@ -42,22 +42,38 @@ void QueueingEncoder::setFrameDivisionModulo(unsigned char modulo) {
 }
 
 void QueueingEncoder::signalEndOfRecording() {
-    // FIXME: maybe insert conditionally? (recording has to be running/no other termination packets have to be in queues already)
+    // FIXME: maybe insert conditionally? (recording has to be running)
     
-    printf("signalling end of recording\n");
+    printf("signalling end of recording requested\n"); // DEBUG
     
     timespec currentTime;
     clock_gettime(CLOCK_MONOTONIC, &currentTime);
     unsigned long long currentTimeMillis = currentTime.tv_sec * 1000 + lround((double) (currentTime.tv_nsec / 100000) / 10.0);
     
+    TimedPacket *audioPacket = 0;
+    TimedPacket *videoFrame = 0;
+    
     mutex.lock();
-    TimedPacket *audioPacket = new TimedPacket(nextAudioIndex++, currentTimeMillis, 0, 0);
-    TimedPacket *videoFrame = new TimedPacket(nextVideoIndex++, currentTimeMillis, 0, 0);
+    if (!audioQueue.containsZeroLengthPacket()) {
+        audioPacket = new TimedPacket(nextAudioIndex++, currentTimeMillis, 0, 0);
+    }
+    if (!encodedFrameQueue.containsZeroLengthPacket()) {
+        videoFrame = new TimedPacket(nextVideoIndex++, currentTimeMillis, 0, 0);
+    }
     mutex.unlock();
     
     // add directly to output queues (skip encoders)
-    audioQueue.addPacket(audioPacket);
-    encodedFrameQueue.addPacket(videoFrame);
+    if (audioPacket != 0) {
+        audioQueue.addPacket(audioPacket);
+    } else {
+        printf("audio queue already contained EOR termination packet, no signal added\n"); // DEBUG
+    }
+    
+    if (videoFrame != 0) {
+        encodedFrameQueue.addPacket(videoFrame);
+    } else {
+        printf("video queue already contained EOR termination packet, no signal added\n"); // DEBUG
+    }
 }
 
 void QueueingEncoder::dataReceived(TimedPacket* audioPacket, TimedPacket* videoFrame) {

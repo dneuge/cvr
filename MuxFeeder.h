@@ -10,6 +10,7 @@
 
 #define INACTIVITY_SLEEP_MILLIS 50
 #define MIN_VIDEO_WAIT_SIZE 10
+#define MIN_AUDIO_WAIT_SIZE 20
 
 class MuxFeeder : public QObject {
     Q_OBJECT

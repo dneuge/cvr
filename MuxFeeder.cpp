@@ -71,9 +71,16 @@ void MuxFeeder::feedEncoder() {
         //printf("MuxFeeder iteration\n"); // DEBUG
         
         // get audio packet if we got none
-        // NOTE: we can pop it unconditionally as audio packets will always be in order
         if (currentAudioPacket == 0) {
-            currentAudioPacket = audioQueue->popFirst();
+            // if a zero length frame resides in queue, we are told to end the
+            // recording, so we can simply flush the queue
+            // FIXME: this will likely be dropping content off the end of a recording, fix or ignore it? (maybe just add a delay between end of capture and zero frame insertion)
+            if (audioQueue->containsZeroLengthPacket()) {
+                printf("MuxFeeder: termination upcoming in audio stream, popping unconditionally\n"); // DEBUG
+                currentAudioPacket = audioQueue->popFirst();
+            } else {
+                currentAudioPacket = audioQueue->popFirstIfExpectedIndexOrMinSize(expectedAudioIndex, MIN_AUDIO_WAIT_SIZE);
+            }
         }
         
         // get video frame if we got none
@@ -82,7 +89,7 @@ void MuxFeeder::feedEncoder() {
             // recording, so we can simply flush the queue
             // FIXME: this will likely be dropping content off the end of a recording, fix or ignore it? (maybe just add a delay between end of capture and zero frame insertion)
             if (videoQueue->containsZeroLengthPacket()) {
-                printf("MuxFeeder: termination upcoming in video stream, popping unconditionally\n");
+                printf("MuxFeeder: termination upcoming in video stream, popping unconditionally\n"); // DEBUG
                 currentVideoFrame = videoQueue->popFirst();
             } else {
                 currentVideoFrame = videoQueue->popFirstIfExpectedIndexOrMinSize(expectedVideoIndex, MIN_VIDEO_WAIT_SIZE);
@@ -90,8 +97,9 @@ void MuxFeeder::feedEncoder() {
         }
         
         // discard outdated packets
+        // termination packets must *NOT* be dropped
         // FIXME: consider overflow of 64 bit index numbers? (how long would a recording have to be to make this an issue?)
-        if ((currentAudioPacket != 0) && (currentAudioPacket->index < expectedAudioIndex)) {
+        if ((currentAudioPacket != 0) && (currentAudioPacket->index < expectedAudioIndex) && (currentAudioPacket->dataLength > 0)) {
             //printf("MuxFeeder dropping audio packet with outdated index %lld\n", currentAudioPacket->index); // DEBUG
             
             delete currentAudioPacket->data;
@@ -99,7 +107,7 @@ void MuxFeeder::feedEncoder() {
             
             currentAudioPacket = 0;
         }
-        if ((currentVideoFrame != 0) && (currentVideoFrame->index < expectedVideoIndex)) {
+        if ((currentVideoFrame != 0) && (currentVideoFrame->index < expectedVideoIndex) && (currentVideoFrame->dataLength > 0)) {
             //printf("MuxFeeder dropping video frame with outdated index %lld\n", currentVideoFrame->index); // DEBUG
             
             delete currentVideoFrame->data;

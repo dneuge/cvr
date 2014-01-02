@@ -1,7 +1,13 @@
 #include "RenderingTest.h"
 
-RenderingTest::RenderingTest()
+// includes needed to display information
+#include <time.h>
+#include <sys/vfs.h>
+
+RenderingTest::RenderingTest(QueueingEncoder *queueingEncoder)
 {
+    this->queueingEncoder = queueingEncoder;
+    
     // initialize dimensions
     updateDimensions();
     
@@ -102,6 +108,16 @@ RenderingTest::RenderingTest()
     
     // start capturing
     dataCallbackThread.start();
+    
+    // trigger window repaint every second
+    QTimer *repaintTimer = new QTimer(this);
+    repaintTimer->setInterval(1000);
+    repaintTimer->start();
+    
+    connect(repaintTimer, SIGNAL(timeout()), this, SLOT(repaint()));
+    
+    // also trigger repaint if encoding state changes
+    connect(queueingEncoder, SIGNAL(stateChanged()), this, SLOT(repaint()));
 }
 
 void RenderingTest::showXvFrame() {
@@ -136,6 +152,75 @@ void RenderingTest::resizeEvent(QResizeEvent *event) {
     updateDimensions();
 }
 
+QString RenderingTest::formatBytesAsQString(double bytes) {
+    char timesDivided = 0;
+    char *prefixes = " kMGTPE";
+    while ((bytes >= 1024.0) && (timesDivided < 7)) {
+        bytes /= 1024.0;
+        timesDivided++;
+    }
+    
+    char *freeSpaceString = new char[255];
+    snprintf(freeSpaceString, 255, "%.1lf %cB", bytes, prefixes[timesDivided]);
+    QString freeSpaceQString(freeSpaceString);
+    
+    delete freeSpaceString;
+    //delete prefixes;
+    
+    return freeSpaceQString;
+}
+
+void RenderingTest::paintInfo(QPainter *painter) {
+    // get current time
+    time_t currentTime;
+    struct tm *currentLocalTime;
+    char *timeString = new char[255];
+    time(&currentTime);
+    currentLocalTime = localtime(&currentTime);
+    strftime(timeString, 255, "%H:%M:%S", currentLocalTime);
+    QString timeQString(timeString);
+    delete timeString;
+    //delete currentLocalTime;
+    
+    // get free disk space
+    struct statfs64 stat;
+    statfs64(".", &stat);
+    double freeSpace = stat.f_bavail * stat.f_bsize;
+    
+    // draw
+    painter->setPen(Qt::white);
+    long width;
+    long offsetX;
+    
+    //  - draw clock
+    QFont font("Source Sans Pro");
+    font.setPixelSize(24);
+    painter->setFont(font);
+    painter->drawText(0, 0, windowWidth, 50, Qt::AlignCenter, timeQString, 0);
+    
+    //  - draw info about disk space
+    width = 100;
+    font.setPixelSize(14);
+    painter->setFont(font);
+    painter->drawText(windowWidth - width - 10, 20, width, 50, Qt::AlignRight, formatBytesAsQString(freeSpace).append(" free"), 0);
+    
+    //  - draw state info
+    EncoderState encoderState = queueingEncoder->getState();
+    switch (encoderState) {
+        case IDLE:      painter->drawText(windowWidth - width - 10, 0, width, 50, Qt::AlignRight, tr("Idle"), 0);
+                        break;
+                        
+        case TIMESHIFT: painter->drawText(windowWidth - width - 10, 0, width, 50, Qt::AlignRight, tr("Timeshift"), 0);
+                        break;
+                        
+        case RECORDING: painter->drawText(windowWidth - width - 10, 0, width, 50, Qt::AlignRight, tr("Recording"), 0);
+                        break;
+                        
+        case STOPPING:  painter->drawText(windowWidth - width - 10, 0, width, 50, Qt::AlignRight, tr("Stopping"), 0);
+                        break;
+    }
+}
+
 void RenderingTest::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
@@ -150,10 +235,13 @@ void RenderingTest::paintEvent(QPaintEvent *event)
     }
     
     // area below video
-    unsigned int yEndVideo = targetY + targetHeight;
+    int yEndVideo = targetY + targetHeight;
     if (yEndVideo < windowHeight) {
         painter->fillRect(0, yEndVideo, windowWidth, windowHeight - yEndVideo, Qt::black);
     }
+    
+    // paint additional info
+    paintInfo(painter);
     
     painter->end();
 }

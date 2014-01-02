@@ -20,6 +20,7 @@
 #include "DataCallback.h"
 #include "VideoSurface.h"
 #include "PulseAudioSink.h"
+#include "QueueingEncoder.h"
 
 // see: http://www.fourcc.org/yuv.php
 #define FOURCC_UYVY_PLANAR 0x59565955
@@ -29,7 +30,7 @@ class RenderingTest : public QWidget
     Q_OBJECT
     
     public:
-        RenderingTest();
+        RenderingTest(QueueingEncoder*);
         DataCallback *dataCallback;
         PulseAudioSink *pulseAudioSink;
     
@@ -62,6 +63,11 @@ class RenderingTest : public QWidget
         int targetY;
         unsigned int targetWidth;
         unsigned int targetHeight;
+        
+        QueueingEncoder *queueingEncoder;
+        
+        void paintInfo(QPainter*);
+        QString formatBytesAsQString(double);
         
     signals:
         void doubleClicked();

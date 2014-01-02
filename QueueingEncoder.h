@@ -11,6 +11,13 @@
 #include "EncodingRingBuffer.h"
 #include "MuxFeeder.h"
 
+enum EncoderState {
+    IDLE,       // when encoding is suspended
+    TIMESHIFT,  // when encoding is active but no recording runs
+    RECORDING,  // when encoding is active and recording runs
+    STOPPING    // when End Of Record has been signalled but recording still runs
+};
+
 class QueueingEncoder : public QObject, public DelayedReceptionCallback {
     Q_OBJECT
     
@@ -20,8 +27,11 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
         MuxFeeder *muxFeeder;
         void signalEndOfRecording();
         void setFrameDivisionModulo(unsigned char);
+        EncoderState getState();
         
     private:
+        EncoderState state;
+        
         std::vector<JPEGEncoder*> jpegEncoders;
         
         EncodingRingBuffer rawFrameQueue;
@@ -34,6 +44,15 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
         
         unsigned char frameDivisionModulo;
         unsigned char frameDivisionCounter;
+        
+        void setState(EncoderState);
+        
+    signals:
+        void stateChanged();
+
+    private slots:
+        void stateChangeRecordingStarted();
+        void stateChangeRecordingStopped();
 };
 
 

@@ -41,6 +41,8 @@ class MuxFeeder : public QObject {
         
     signals:
         void startEncoding();
+        void attachedContainerEncoder();
+        void detachedContainerEncoder();
     
     private slots:
         void feedEncoder();

@@ -10,6 +10,7 @@ QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
     nextVideoIndex = 0;
     frameDivisionCounter = 0;
     frameDivisionModulo = 1;
+    state = IDLE;
     
     audioQueue.configure(timeshiftMillis, 0);
     rawFrameQueue.configure(0, maxRawFrames);
@@ -20,6 +21,45 @@ QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
     }
     
     muxFeeder = new MuxFeeder(&audioQueue, &encodedFrameQueue);
+    
+    connect(muxFeeder, SIGNAL(attachedContainerEncoder()), this, SLOT(stateChangeRecordingStarted()));
+    connect(muxFeeder, SIGNAL(detachedContainerEncoder()), this, SLOT(stateChangeRecordingStopped()));
+}
+
+void QueueingEncoder::setState(EncoderState newState) {
+    mutex.lock();
+    
+    // only accept valid state transitions (could be outdated?)
+    bool valid  = (newState == RECORDING) && (state == IDLE     || state == TIMESHIFT);
+    valid      |= (newState == STOPPING);
+    valid      |= (newState == IDLE)      && (state == STOPPING || state == RECORDING);
+    valid      |= (newState == TIMESHIFT) && (state == IDLE);
+    
+    if (valid) {
+        state = newState;
+    }
+    
+    mutex.unlock();
+    
+    if (valid) {
+        emit stateChanged();
+    }
+}
+
+EncoderState QueueingEncoder::getState() {
+    mutex.lock();
+    EncoderState state = this->state;
+    mutex.unlock();
+    
+    return state;
+}
+
+void QueueingEncoder::stateChangeRecordingStarted() {
+    setState(RECORDING);
+}
+
+void QueueingEncoder::stateChangeRecordingStopped() {
+    setState(IDLE);
 }
 
 /**
@@ -48,6 +88,8 @@ void QueueingEncoder::signalEndOfRecording() {
         printf("no recording running, not signaling EOR (no container encoder registered)\n"); // DEBUG
         return;
     }
+    
+    setState(STOPPING);
     
     timespec currentTime;
     clock_gettime(CLOCK_MONOTONIC, &currentTime);
@@ -83,6 +125,8 @@ void QueueingEncoder::dataReceived(TimedPacket* audioPacket, TimedPacket* videoF
     // packets/frames are reindexed at this point for a few reasons:
     //  - skipped frames (frame division) would look like dropped frames to muxer if we wouldn't reindex
     //  - being able to add EOR signalling packets with a unique index number
+    
+    setState(TIMESHIFT);
     
     if (audioPacket != 0) {
         mutex.lock();

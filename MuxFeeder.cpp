@@ -62,6 +62,8 @@ bool MuxFeeder::setContainerEncoder(MatroskaEncoder *newContainerEncoder) {
     
     printf("new container encoder has been registered\n"); // DEBUG
     
+    emit attachedContainerEncoder();
+    
     return success;
 }
 
@@ -168,6 +170,8 @@ void MuxFeeder::feedEncoder() {
             // reset state for next recording
             audioStreamTerminated = false;
             videoStreamTerminated = false;
+            
+            emit detachedContainerEncoder();
         } else if (audioStreamTerminated) {
             //printf("MuxFeeder: audio stream has been terminated, only forwarding video frames\n"); // DEBUG
             

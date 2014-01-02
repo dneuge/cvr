@@ -22,6 +22,29 @@ MuxFeeder::MuxFeeder(EncodingRingBuffer *audioQueue, EncodingRingBuffer *videoQu
     emit startEncoding();
 }
 
+/**
+ * If a container encoder is currently registered, it can be assumed that a
+ * recording is running.
+ * @return container encoder registered (i.e. recording)?
+ */
+bool MuxFeeder::isContainerEncoderRegistered() {
+    bool registered = true;
+    
+    mutex.lock();
+    registered = (containerEncoder != 0);
+    mutex.unlock();
+    
+    return registered;
+}
+
+/**
+ * By setting a container encoder, output queues will start to be forwarded to
+ * it (i.e. recording to the file configured on the encoder object is started).
+ * Container encoders are automatically unregistered when all streams have been
+ * terminated.
+ * @param newContainerEncoder fully configured and ready to receive data encoder object
+ * @return success? (only one encoder allowed at a time, so trying to add a second encoder will fail)
+ */
 bool MuxFeeder::setContainerEncoder(MatroskaEncoder *newContainerEncoder) {
     bool success = false;
     

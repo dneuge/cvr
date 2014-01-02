@@ -42,9 +42,12 @@ void QueueingEncoder::setFrameDivisionModulo(unsigned char modulo) {
 }
 
 void QueueingEncoder::signalEndOfRecording() {
-    // FIXME: maybe insert conditionally? (recording has to be running)
+    printf("signaling end of recording requested\n"); // DEBUG
     
-    printf("signalling end of recording requested\n"); // DEBUG
+    if (!muxFeeder->isContainerEncoderRegistered()) {
+        printf("no recording running, not signaling EOR (no container encoder registered)\n"); // DEBUG
+        return;
+    }
     
     timespec currentTime;
     clock_gettime(CLOCK_MONOTONIC, &currentTime);

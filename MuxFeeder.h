@@ -18,6 +18,7 @@ class MuxFeeder : public QObject {
     public:
         MuxFeeder(EncodingRingBuffer*, EncodingRingBuffer*);
         bool setContainerEncoder(MatroskaEncoder*);
+        bool isContainerEncoderRegistered();
     
     private:
         QThread thread;

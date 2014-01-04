@@ -7,6 +7,7 @@
 RenderingTest::RenderingTest(QueueingEncoder *queueingEncoder)
 {
     this->queueingEncoder = queueingEncoder;
+    infoDisplayMode = 0;
     
     // initialize dimensions
     updateDimensions();
@@ -117,7 +118,21 @@ RenderingTest::RenderingTest(QueueingEncoder *queueingEncoder)
     connect(repaintTimer, SIGNAL(timeout()), this, SLOT(repaint()));
     
     // also trigger repaint if encoding state changes
-    connect(queueingEncoder, SIGNAL(stateChanged()), this, SLOT(repaint()));
+    connect(queueingEncoder, SIGNAL(stateChanged()), this, SLOT(repaint()), Qt::QueuedConnection);
+    
+    // shortcuts for cycling of information display
+    QAction *actionCycleInfo = new QAction(this);
+    actionCycleInfo->setShortcut(QKeySequence(Qt::Key_Q));
+    connect(actionCycleInfo, SIGNAL(triggered()), this, SLOT(cycleInfoDisplay()));
+    addAction(actionCycleInfo);
+}
+
+void RenderingTest::cycleInfoDisplay() {
+    mutex.lock();
+    infoDisplayMode = ++infoDisplayMode % 3;
+    mutex.unlock();
+    
+    emit repaint();
 }
 
 void RenderingTest::showXvFrame() {
@@ -170,7 +185,7 @@ QString RenderingTest::formatBytesAsQString(double bytes) {
     return freeSpaceQString;
 }
 
-void RenderingTest::paintInfo(QPainter *painter) {
+void RenderingTest::paintInfo(QPainter *painter, unsigned char infoDisplayMode) {
     // get current time
     time_t currentTime;
     struct tm currentLocalTime;
@@ -220,20 +235,22 @@ void RenderingTest::paintInfo(QPainter *painter) {
     }
     
     // draw statistics
-    std::map<ContentType,QueueStats*>* stats = queueingEncoder->getQueueStats();
-    std::map<ContentType,QueueStats*>::iterator it = stats->begin();
-    
-    while (it != stats->end()) {
-        // paint
-        paintStats(painter, (*it).first, (*it).second, encoderState);
-        
-        // free after use
-        delete (*it).second;
-        
-        it++;
+    if (infoDisplayMode == 2) {
+        std::map<ContentType,QueueStats*>* stats = queueingEncoder->getQueueStats();
+        std::map<ContentType,QueueStats*>::iterator it = stats->begin();
+
+        while (it != stats->end()) {
+            // paint
+            paintStats(painter, (*it).first, (*it).second, encoderState);
+
+            // free after use
+            delete (*it).second;
+
+            it++;
+        }
+
+        delete stats;
     }
-    
-    delete stats;
 }
 
 void RenderingTest::paintStats(QPainter *painter, ContentType contentType, QueueStats *stats, EncoderState encoderState) {
@@ -388,7 +405,13 @@ void RenderingTest::paintEvent(QPaintEvent *event)
     }
     
     // paint additional info
-    paintInfo(painter);
+    mutex.lock();
+    unsigned char currentInfoDisplayMode = infoDisplayMode;
+    mutex.unlock();
+    
+    if (currentInfoDisplayMode != 0) {
+        paintInfo(painter, currentInfoDisplayMode);
+    }
     
     painter->end();
 }

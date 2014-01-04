@@ -66,13 +66,19 @@ class RenderingTest : public QWidget
         
         QueueingEncoder *queueingEncoder;
         
-        void paintInfo(QPainter*);
+        QMutex mutex;
+        unsigned char infoDisplayMode;
+        
+        void paintInfo(QPainter*, unsigned char);
         void paintStats(QPainter*, ContentType, QueueStats*, EncoderState);
         QString formatBytesAsQString(double);
         
     signals:
         void doubleClicked();
         void doubleClickedRight();
+        
+    private slots:
+        void cycleInfoDisplay();
 };
 
 #endif	/* RENDERINGTEST_H */

@@ -246,3 +246,14 @@ bool QueueingEncoder::startRecording(char *fileName) {
     
     return success;
 }
+
+std::map<ContentType, QueueStats*>* QueueingEncoder::getQueueStats() {
+    std::map<ContentType, QueueStats*> *map = new std::map<ContentType, QueueStats*>();
+    
+    map->insert(std::pair<ContentType, QueueStats*>(AUDIO, audioQueue.getStats()));
+    map->insert(std::pair<ContentType, QueueStats*>(VIDEO_RAW, rawFrameQueue.getStats()));
+    map->insert(std::pair<ContentType, QueueStats*>(VIDEO_ENCODED, encodedFrameQueue.getStats()));
+    
+    return map;
+}
+

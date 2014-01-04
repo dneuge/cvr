@@ -67,6 +67,7 @@ class RenderingTest : public QWidget
         QueueingEncoder *queueingEncoder;
         
         void paintInfo(QPainter*);
+        void paintStats(QPainter*, ContentType, QueueStats*, EncoderState);
         QString formatBytesAsQString(double);
         
     signals:

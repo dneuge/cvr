@@ -2,6 +2,7 @@
 #define	QUEUEINGENCODER_H
 
 #include <vector>
+#include <map>
 
 #include <QObject>
 
@@ -18,6 +19,12 @@ enum EncoderState {
     STOPPING    // when End Of Record has been signalled but recording still runs
 };
 
+enum ContentType {
+    AUDIO,
+    VIDEO_RAW,
+    VIDEO_ENCODED
+};
+
 class QueueingEncoder : public QObject, public DelayedReceptionCallback {
     Q_OBJECT
     
@@ -31,6 +38,7 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
         void clearQueues();
         bool startRecording(char*);
         EncoderState getState();
+        std::map<ContentType, QueueStats*>* getQueueStats();
         
     private:
         EncoderState state;

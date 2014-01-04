@@ -218,6 +218,154 @@ void RenderingTest::paintInfo(QPainter *painter) {
         case STOPPING:  painter->drawText(windowWidth - width - 10, 0, width, 50, Qt::AlignRight, tr("Stopping"), 0);
                         break;
     }
+    
+    // draw statistics
+    std::map<ContentType,QueueStats*>* stats = queueingEncoder->getQueueStats();
+    std::map<ContentType,QueueStats*>::iterator it = stats->begin();
+    
+    while (it != stats->end()) {
+        // paint
+        paintStats(painter, (*it).first, (*it).second, encoderState);
+        
+        // free after use
+        delete (*it).second;
+        
+        it++;
+    }
+    
+    delete stats;
+}
+
+void RenderingTest::paintStats(QPainter *painter, ContentType contentType, QueueStats *stats, EncoderState encoderState) {
+    QString name;
+    long offsetY = -1;
+    
+    switch (contentType) {
+        case AUDIO:         offsetY =  0; name.append("Audio Queue"); break;
+        case VIDEO_RAW:     offsetY = 20; name.append("Raw Video Queue"); break;
+        case VIDEO_ENCODED: offsetY = 40; name.append("JPEG Video Queue"); break;
+    }
+    
+    // skip unsupported content types
+    if (offsetY < 0) {
+        return;
+    }
+    
+    // setup painter
+    QFont font("Source Sans Pro");
+    font.setPixelSize(14);
+    painter->setFont(font);
+    painter->setPen(Qt::white);
+    
+    // - queue name
+    long offsetX = 5;
+    painter->drawText(offsetX, offsetY, 120, 15, Qt::AlignLeft, QString(name).append(":"), 0);
+    offsetX += 130;
+    
+    // - total bytes
+    painter->drawText(offsetX, offsetY, 50, 15, Qt::AlignRight, formatBytesAsQString(stats->totalBytes), 0);
+    offsetX += 55;
+    
+    // - divider
+    painter->drawLine(offsetX, offsetY, offsetX, offsetY + 20);
+    offsetX += 5;
+    
+    // - seconds
+    unsigned long millisInBuffer = stats->latestPacketTimestamp - stats->oldestPacketTimestamp;
+    char *secondsInBuffer = new char[256];
+    snprintf(secondsInBuffer, 255, "%.1lf", (double) millisInBuffer / 1000.0);
+    QString secondsInBufferQString(secondsInBuffer);
+    delete[] secondsInBuffer;
+    
+    painter->drawText(offsetX, offsetY, 40, 15, Qt::AlignRight, secondsInBufferQString.append(" s"), 0);
+    offsetX += 45;
+    
+    // - divider
+    painter->drawLine(offsetX, offsetY, offsetX, offsetY + 20);
+    offsetX += 5;
+    
+    // - packets
+    char *packetsInBuffer = new char[256];
+    snprintf(packetsInBuffer, 255, "%ld", stats->numPackets);
+    QString packetsInBufferQString(packetsInBuffer);
+    delete[] packetsInBuffer;
+    
+    painter->drawText(offsetX, offsetY, 50, 15, Qt::AlignRight, packetsInBufferQString.append((contentType == AUDIO) ? " p" : " f"), 0);
+    offsetX += 55;
+    
+    // - divider
+    painter->drawLine(offsetX, offsetY, offsetX, offsetY + 20);
+    
+    // - percentage filled
+    double percentageUsed = -1.0;
+    double percentageUsedMillis = -1.0;
+    double percentageUsedPackets = -1.0;
+    char *percentageUsedString = new char[256];
+    
+    if (stats->maxMillis != 0) {
+        percentageUsedMillis = (stats->latestPacketTimestamp - stats->oldestPacketTimestamp) / (double) stats->maxMillis * 100.0;
+    }
+    
+    if (stats->maxPackets != 0) {
+        percentageUsedPackets = (double) stats->numPackets / stats->maxPackets * 100.0;
+    }
+    
+    percentageUsed = percentageUsedPackets;
+    if (percentageUsedMillis > percentageUsedPackets) {
+        percentageUsed = percentageUsedMillis;
+    }
+    
+    if (percentageUsed < -0.5) {
+        strcpy(percentageUsedString, "n/a");
+    } else if (percentageUsed < 0.01) {
+        strcpy(percentageUsedString, "0 %");
+    } else if (percentageUsed > 99.99) {
+        strcpy(percentageUsedString, "100 %");
+    } else {
+        snprintf(percentageUsedString, 255, "%.0lf %%", percentageUsed);
+    }
+    
+    QString percentageUsedQString(percentageUsedString);
+    delete[] percentageUsedString;
+    
+    painter->drawText(offsetX, offsetY, 40, 15, Qt::AlignRight, percentageUsedQString, 0);
+    offsetX += 45;
+    
+    // info about size per second makes only sense during timeshift
+    if (encoderState == TIMESHIFT) {
+        // - divider
+        painter->drawLine(offsetX, offsetY, offsetX, offsetY + 20);
+        offsetX += 5;
+
+        // - packets/second (in buffer)
+        QString ppsInBufferQString;
+        if ((millisInBuffer == 0) || (stats->numPackets == 0)) {
+            ppsInBufferQString.append("n/a");
+        } else {
+            double ppsInBuffer = (double) stats->numPackets / millisInBuffer * 1000.0;
+            char *ppsInBufferString = new char[256];
+            snprintf(ppsInBufferString, 255, "%.1lf", ppsInBuffer);
+            ppsInBufferQString.append(ppsInBufferString);
+            delete[] ppsInBufferString;
+        }
+
+        painter->drawText(offsetX, offsetY, 60, 15, Qt::AlignRight, ppsInBufferQString.append((contentType == AUDIO) ? " p/s" : " f/s"), 0);
+        offsetX += 65;
+
+        // - divider
+        painter->drawLine(offsetX, offsetY, offsetX, offsetY + 20);
+        offsetX += 5;
+
+        // - bytes/second (in buffer)
+        QString bpsInBufferQString;
+        if ((millisInBuffer == 0) || (stats->numPackets == 0)) {
+            bpsInBufferQString.append("n/a");
+        } else {
+            bpsInBufferQString = formatBytesAsQString((double) stats->totalBytes / millisInBuffer * 1000.0).append("/s");
+        }
+        painter->drawText(offsetX, offsetY, 60, 15, Qt::AlignRight, bpsInBufferQString, 0);
+        offsetX += 65;
+    }
 }
 
 void RenderingTest::paintEvent(QPaintEvent *event)

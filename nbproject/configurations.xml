@@ -13,6 +13,7 @@
         <itemPath>MatroskaEBMLElementDefinitions.h</itemPath>
         <itemPath>MatroskaEncoder.h</itemPath>
         <itemPath>MuxFeeder.h</itemPath>
+        <itemPath>QueueStats.h</itemPath>
         <itemPath>QueueingEncoder.h</itemPath>
       </logicalFolder>
       <logicalFolder name="f1" displayName="gui" projectFiles="true">
@@ -158,6 +159,8 @@
       </item>
       <item path="PulseAudioSink.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="QueueStats.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="QueueingEncoder.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="QueueingEncoder.h" ex="false" tool="3" flavor2="0">
@@ -255,6 +258,8 @@
       <item path="PulseAudioSink.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="PulseAudioSink.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="QueueStats.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="QueueingEncoder.cpp" ex="false" tool="1" flavor2="0">
       </item>

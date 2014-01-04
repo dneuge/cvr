@@ -7,6 +7,7 @@
 #include <QMutex>
 
 #include "TimedPacket.h"
+#include "QueueStats.h"
 
 class EncodingRingBuffer : public QObject {
     Q_OBJECT
@@ -20,6 +21,7 @@ class EncodingRingBuffer : public QObject {
         bool containsZeroLengthPacket();
         void removeZeroLengthPackets();
         void clear();
+        QueueStats* getStats();
     
     private:
         std::vector<TimedPacket*> packets;

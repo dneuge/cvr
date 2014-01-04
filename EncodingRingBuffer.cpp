@@ -194,3 +194,27 @@ void EncodingRingBuffer::clear() {
     
     mutex.unlock();
 }
+
+QueueStats* EncodingRingBuffer::getStats() {
+    QueueStats *stats = new QueueStats();
+    
+    mutex.lock();
+    
+    stats->maxMillis = maxMillisInBuffer;
+    stats->maxPackets = maxPacketsInBuffer;
+    stats->numPackets = packets.size();
+    stats->oldestPacketTimestamp = packets.empty() ? 0 : packets.front()->timestampMillis;
+    stats->latestPacketTimestamp = packets.empty() ? 0 : packets.back()->timestampMillis;
+    
+    unsigned long totalBytes = 0;
+    std::vector<TimedPacket*>::iterator it = packets.begin();
+    while (it != packets.end()) {
+        totalBytes += (*it)->dataLength;
+        it++;
+    }
+    stats->totalBytes = totalBytes;
+    
+    mutex.unlock();
+    
+    return stats;
+}

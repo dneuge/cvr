@@ -176,7 +176,7 @@ void RenderingTest::paintInfo(QPainter *painter) {
     struct tm currentLocalTime;
     char *timeString = new char[255];
     time(&currentTime);
-    localtime_r(&currentTime);
+    localtime_r(&currentTime, &currentLocalTime);
     strftime(timeString, 255, "%H:%M:%S", &currentLocalTime);
     QString timeQString(timeString);
     delete timeString;

@@ -164,8 +164,8 @@ QString RenderingTest::formatBytesAsQString(double bytes) {
     snprintf(freeSpaceString, 255, "%.1lf %cB", bytes, prefixes[timesDivided]);
     QString freeSpaceQString(freeSpaceString);
     
-    delete freeSpaceString;
-    //delete prefixes;
+    delete[] freeSpaceString;
+    //delete[] prefixes;
     
     return freeSpaceQString;
 }
@@ -173,14 +173,13 @@ QString RenderingTest::formatBytesAsQString(double bytes) {
 void RenderingTest::paintInfo(QPainter *painter) {
     // get current time
     time_t currentTime;
-    struct tm *currentLocalTime;
+    struct tm currentLocalTime;
     char *timeString = new char[255];
     time(&currentTime);
-    currentLocalTime = localtime(&currentTime);
-    strftime(timeString, 255, "%H:%M:%S", currentLocalTime);
+    localtime_r(&currentTime);
+    strftime(timeString, 255, "%H:%M:%S", &currentLocalTime);
     QString timeQString(timeString);
     delete timeString;
-    //delete currentLocalTime;
     
     // get free disk space
     struct statfs64 stat;

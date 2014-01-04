@@ -64,14 +64,13 @@ MainWindow::MainWindow(QApplication *application)
 
 void MainWindow::startRecording() {
     time_t currentTime;
+    struct tm currentLocalTime;
     char fileName[256];
     
     time(&currentTime);
-    struct tm *currentLocalTime = localtime(&currentTime);
+    localtime_r(&currentTime, &currentLocalTime);
     
-    strftime(fileName, 256, "cvr_recording_%F_%H-%M-%S.mkv", currentLocalTime);
-    
-    //delete currentLocalTime;
+    strftime(fileName, 256, "cvr_recording_%F_%H-%M-%S.mkv", &currentLocalTime);
     
     bool success = encoder->startRecording(fileName);
     

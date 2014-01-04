@@ -29,7 +29,7 @@ MainWindow::MainWindow(QApplication *application)
     
     setLayout(mainLayout);
     
-    resize(1280, 720);
+    resize(1280, 720 + 120);
     
     // hot-key SPACE toggles capturing (used to resync)
     QAction *actionToggleCapture = new QAction(this);

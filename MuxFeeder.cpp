@@ -165,6 +165,7 @@ void MuxFeeder::feedEncoder() {
             currentVideoFrame = 0;
             
             // detach encoder
+            delete containerEncoder;
             containerEncoder = 0;
             
             // reset state for next recording

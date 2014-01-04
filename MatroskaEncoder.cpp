@@ -373,6 +373,34 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     fileOffsetSegmentPayload = segmentNode->getAbsolutePayloadOffset();
 }
 
+MatroskaEncoder::~MatroskaEncoder() {
+    //fclose(fh);
+    //delete fh;
+    
+    delete rootNode;
+    delete elementDefinitions;
+    
+    // free usedIDs
+    {
+        std::vector<unsigned char*>::iterator it = usedIDs.begin();
+        while (it != usedIDs.end()) {
+            delete[] (*it);
+            it++;
+        }
+    }
+    
+    // free cue points
+    {
+        std::vector<MatroskaCuePoint*>::iterator it = cuePoints.begin();
+        while (it != cuePoints.end()) {
+            delete (*it);
+            it++;
+        }
+    }
+    
+    printf("cleaned up\n");
+}
+
 bool MatroskaEncoder::isSuccess() {
     return success;
 }
@@ -440,9 +468,6 @@ void MatroskaEncoder::closeFile() {
             node->setIntegerContent(cuePoint->clusterOffsetAudioTrack - fileOffsetSegmentPayload);
             cueTrackPositionsNode->addChildNode(node);
         }
-        
-        // cue point is no longer needed, free memory
-        delete cuePoint;
         
         it++;
     }

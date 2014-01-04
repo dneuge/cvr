@@ -11,7 +11,8 @@ EBMLElement::EBMLElement(unsigned char sequenceLength, const unsigned char *sequ
 }
 
 EBMLElement::~EBMLElement() {
-    delete sequence;
+    // fails because of const char*
+    //delete[] sequence;
 }
 
 /**

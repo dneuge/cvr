@@ -160,3 +160,37 @@ bool EncodingRingBuffer::addPacket(TimedPacket *packet) {
     
     return true;
 }
+
+void EncodingRingBuffer::removeZeroLengthPackets() {
+    mutex.lock();
+    
+    std::vector<TimedPacket*>::iterator it = packets.begin();
+    while (it != packets.end()) {
+        if ((*it)->dataLength == 0) {
+            packets.erase(it);
+        }
+
+        it++;
+    };
+    
+    mutex.unlock();
+}
+
+void EncodingRingBuffer::clear() {
+    mutex.lock();
+    
+    std::vector<TimedPacket*>::iterator it = packets.begin();
+    while (it != packets.end()) {
+        if (((*it)->dataLength > 0) && ((*it)->data != 0)) {
+            delete (*it)->data;
+        }
+
+        delete (*it);
+        
+        it++;
+    };
+    
+    packets.clear();
+    
+    mutex.unlock();
+}

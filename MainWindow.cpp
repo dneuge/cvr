@@ -73,23 +73,10 @@ void MainWindow::startRecording() {
     
     //delete currentLocalTime;
     
-    bool success = true;
-    
-    MatroskaEncoder *containerEncoder = new MatroskaEncoder(fileName);
-    success &= containerEncoder->isSuccess();
-    
-    if (success) {
-        containerEncoder->writeFileHeader();
-        success &= containerEncoder->isSuccess();
-    }
-    
-    if (success) {
-        success &= encoder->muxFeeder->setContainerEncoder(containerEncoder);
-    }
+    bool success = encoder->startRecording(fileName);
     
     if (!success) {
         printf("failed to start recording to %s\n", fileName);
-        delete containerEncoder;
     }
 }
 

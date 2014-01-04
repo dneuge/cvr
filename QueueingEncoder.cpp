@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <qt4/QtCore/qnamespace.h>
 
 QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
     unsigned long timeshiftMillis = 30000;
@@ -22,8 +23,8 @@ QueueingEncoder::QueueingEncoder(int numEncoderThreads) {
     
     muxFeeder = new MuxFeeder(&audioQueue, &encodedFrameQueue);
     
-    connect(muxFeeder, SIGNAL(attachedContainerEncoder()), this, SLOT(stateChangeRecordingStarted()));
-    connect(muxFeeder, SIGNAL(detachedContainerEncoder()), this, SLOT(stateChangeRecordingStopped()));
+    connect(muxFeeder, SIGNAL(attachedContainerEncoder()), this, SLOT(stateChangeRecordingStarted()), Qt::QueuedConnection);
+    connect(muxFeeder, SIGNAL(detachedContainerEncoder()), this, SLOT(stateChangeRecordingStopped()), Qt::QueuedConnection);
 }
 
 void QueueingEncoder::setState(EncoderState newState) {
@@ -172,4 +173,76 @@ void QueueingEncoder::dataReceived(TimedPacket* audioPacket, TimedPacket* videoF
             delete videoFrame;
         }
     }
+}
+
+void QueueingEncoder::clearQueues() {
+    audioQueue.clear();
+    rawFrameQueue.clear();
+    encodedFrameQueue.clear();
+}
+
+void QueueingEncoder::removeEORFromQueues() {
+    audioQueue.removeZeroLengthPackets();
+    rawFrameQueue.removeZeroLengthPackets();
+    encodedFrameQueue.removeZeroLengthPackets();
+}
+
+bool QueueingEncoder::startRecording(char *fileName) {
+    MatroskaEncoder *containerEncoder = 0;
+    
+    mutex.lock();
+    
+    // remember initial state
+    EncoderState originalState = state;
+    
+    // only setup recording if not running yet
+    bool success = (state == IDLE) || (state == TIMESHIFT);
+    
+    if (success) {
+        // clear queues if not timeshifting (remove any old data)
+        if (originalState == IDLE) {
+            clearQueues();
+        }
+        
+        // remove all End Of Recording packets from queues before we attach the encoder
+        removeEORFromQueues();
+        
+        // we set recording state manually to prevent a second start of recording
+        state = RECORDING;
+    }
+    
+    // unlock early because setting up the encoder may take a moment
+    mutex.unlock();
+    
+    // exit early if not allowed by state
+    if (!success) {
+        return success;
+    }
+    
+    // create new container encoder
+    if (success) {
+        containerEncoder = new MatroskaEncoder(fileName);
+        success &= containerEncoder->isSuccess();
+    }
+    
+    if (success) {
+        containerEncoder->writeFileHeader();
+        success &= containerEncoder->isSuccess();
+    }
+    
+    // activate encoder
+    if (success) {
+        success &= muxFeeder->setContainerEncoder(containerEncoder);
+    }
+    
+    // handle errors
+    if (!success) {
+        // reset to idle state if failed
+        setState(IDLE);
+        
+        // remove encoder
+        delete containerEncoder;
+    }
+    
+    return success;
 }

@@ -27,6 +27,9 @@ class QueueingEncoder : public QObject, public DelayedReceptionCallback {
         MuxFeeder *muxFeeder;
         void signalEndOfRecording();
         void setFrameDivisionModulo(unsigned char);
+        void removeEORFromQueues();
+        void clearQueues();
+        bool startRecording(char*);
         EncoderState getState();
         
     private:

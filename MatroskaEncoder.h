@@ -14,6 +14,7 @@
 class MatroskaEncoder {
     public:
         MatroskaEncoder(const char*);
+        ~MatroskaEncoder();
         bool isSuccess();
         void writeFileHeader();
         void addVideoFrame(TimedPacket*);

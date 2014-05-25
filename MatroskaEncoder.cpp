@@ -76,7 +76,8 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     seekHeadNode->addChildNode(seekNode);
     
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekID"));
-    node->copyBinaryContent((unsigned char[]) {0x15, 0x49, 0xA9, 0x66}, 4); // "KaxInfo"
+    unsigned char KAX_INFO[] = {0x15, 0x49, 0xA9, 0x66};
+    node->copyBinaryContent(KAX_INFO, 4);
     seekNode->addChildNode(node);
     
     EBMLTreeNode *seekPositionNodeForSegmentInfo = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekPosition"));
@@ -88,7 +89,8 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     seekHeadNode->addChildNode(seekNode);
     
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekID"));
-    node->copyBinaryContent((unsigned char[]) {0x16, 0x54, 0xAE, 0x6B}, 4); // "KaxTracks"
+    unsigned char KAX_TRACKS[] = {0x16, 0x54, 0xAE, 0x6B};
+    node->copyBinaryContent(KAX_TRACKS , 4);
     seekNode->addChildNode(node);
     
     EBMLTreeNode *seekPositionNodeForTrackInfo = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekPosition"));
@@ -100,7 +102,8 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     seekHeadNode->addChildNode(seekNode);
     
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekID"));
-    node->copyBinaryContent((unsigned char[]) {0x12, 0x54, 0xC3, 0x67}, 4); // "KaxTags"
+    unsigned char KAX_TAGS[] = {0x12, 0x54, 0xC3, 0x67};
+    node->copyBinaryContent(KAX_TAGS, 4);
     seekNode->addChildNode(node);
     
     EBMLTreeNode *seekPositionNodeForTags = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekPosition"));
@@ -112,7 +115,8 @@ MatroskaEncoder::MatroskaEncoder(const char *fileName) {
     seekHeadNode->addChildNode(seekNode);
     
     node = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekID"));
-    node->copyBinaryContent((unsigned char[]) {0x1C, 0x53, 0xBB, 0x6B}, 4); // "KaxCues"
+    unsigned char KAX_CUES[] = {0x1C, 0x53, 0xBB, 0x6B};
+    node->copyBinaryContent(KAX_CUES, 4);
     seekNode->addChildNode(node);
     
     EBMLTreeNode *seekPositionNodeForCuePoints = new EBMLTreeNode(elementDefinitions->getElementDefinitionByName("SeekPosition"));

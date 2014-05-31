@@ -23,6 +23,8 @@ class MainWindow : public QWidget
     private:
         RenderingTest *renderingTest;
         QueueingEncoder *encoder;
+        
+        int toggleScreenSaver(bool);
 };
 
 #endif	/* MAINWINDOW_H */

@@ -83,6 +83,30 @@ void MainWindow::stopRecording() {
     encoder->signalEndOfRecording();
 }
 
+int MainWindow::toggleScreenSaver(bool enableScreenSaver) {
+    #define CMD_LINE_LENGTH 256
+    
+    char cmdline[CMD_LINE_LENGTH];
+    
+    // QUESTION: winId changes upon state change; not sure if we can avoid that?
+    if (enableScreenSaver) {
+        snprintf(cmdline, CMD_LINE_LENGTH, "xdg-screensaver resume %lu", winId());
+    } else {
+        snprintf(cmdline, CMD_LINE_LENGTH, "xdg-screensaver suspend %lu", winId());
+    }
+    
+    // terminate string on last byte
+    cmdline[CMD_LINE_LENGTH - 1] = 0;
+    
+    std::cout << "executing: " << cmdline << "\n";
+    
+    int retval = system(cmdline);
+    if (retval != 0) {
+        std::cout << "command failed\n";
+    }
+    
+    return retval;
+}
 
 void MainWindow::toggleFullscreen(bool maximizeInstead) {
     Qt::WindowFlags flags = windowFlags();
@@ -93,6 +117,8 @@ void MainWindow::toggleFullscreen(bool maximizeInstead) {
         setWindowState(Qt::WindowNoState);
         
         setCursor(Qt::ArrowCursor);
+        
+        toggleScreenSaver(true);
     } else {
         // enable
         flags |= Qt::FramelessWindowHint;
@@ -103,6 +129,8 @@ void MainWindow::toggleFullscreen(bool maximizeInstead) {
         }
         
         setCursor(Qt::BlankCursor);
+        
+        toggleScreenSaver(false);
     }
     
     setWindowFlags(flags);

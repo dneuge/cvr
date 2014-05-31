@@ -8,7 +8,7 @@ RenderingTest::RenderingTest(QueueingEncoder *queueingEncoder)
 {
     this->queueingEncoder = queueingEncoder;
     infoDisplayMode = 0;
-    
+
     // initialize dimensions
     updateDimensions();
     
@@ -20,7 +20,7 @@ RenderingTest::RenderingTest(QueueingEncoder *queueingEncoder)
     // create image and shared buffer
     image = new QImage(1280, 720, QImage::Format_RGB32);
     rawImageLength = 1280/2 * 720 * 4; // UYVY: 4 bytes per 2 pixels
-    rawImage = new unsigned char[rawImageLength]; 
+    rawImage = new unsigned char[rawImageLength];
     
     /*
     videoSurface = new VideoSurface(this, &image, &frameDrawMutex);
@@ -91,6 +91,83 @@ RenderingTest::RenderingTest(QueueingEncoder *queueingEncoder)
         return;
     }
     
+    XLockDisplay(display);
+    
+    // try to find and set VSync/buffering attributes
+    int numAttributes;
+    XvAttribute *attributes = XvQueryPortAttributes(display, grabbedXvPort, &numAttributes);
+    for (int i=0; i<numAttributes; i++) {
+        XvAttribute *attribute = &attributes[i];
+        std::cout << "found XVideo attribute: " << attribute->name << "\n";
+        
+        if (strcmp(attribute->name, "XV_SYNC_TO_VBLANK") == 0) {
+            std::cout << "trying to enable VSYNC\n";
+            
+            Atom atom = XInternAtom(display, attribute->name, False);
+            if (atom == BadAlloc) {
+                std::cout << "atom for VSYNC was BadAlloc\n";
+            } else if (atom == BadAtom) {
+                std::cout << "atom for VSYNC was BadAtom\n";
+            } else if (atom == BadValue) {
+                std::cout << "atom for VSYNC was BadValue\n";
+            }
+            
+            
+            int res = XvSetPortAttribute(display, grabbedXvPort, atom, 1);
+            if (res != Success) {
+                std::cout << "failed to enable VSYNC: ";
+                if (res == XvBadExtension) {
+                    std::cout << "XvBadExtension";
+                } else if (res == XvBadAlloc) {
+                    std::cout << "XvBadAlloc";
+                } else {
+                    std::cout << "unknown return code from XvSetPortAttribute";
+                }
+                std::cout << "\n";
+            }
+        /*
+        } else if (strcmp(attribute->name, "XV_BRIGHTNESS") == 0) {
+            std::cout << "trying to set brightness\n";
+            
+            Atom atom = XInternAtom(display, "XV_BRIGHTNESS", False);
+            
+            int res = XvSetPortAttribute(display, grabbedXvPort, atom, 50);
+            if (res != Success) {
+                std::cout << "failed to set brightness: ";
+                if (res == XvBadExtension) {
+                    std::cout << "XvBadExtension";
+                } else if (res == XvBadAlloc) {
+                    std::cout << "XvBadAlloc";
+                } else {
+                    std::cout << "unknown return code from XvSetPortAttribute";
+                }
+                std::cout << "\n";
+            }
+        */
+        } else if (strcmp(attribute->name, "XV_ITURBT_709") == 0) {
+            std::cout << "trying to set dynamic range\n";
+            
+            Atom atom = XInternAtom(display, attribute->name, False);
+            
+            int res = XvSetPortAttribute(display, grabbedXvPort, atom, 0);
+            if (res != Success) {
+                std::cout << "failed to set dynamic range: ";
+                if (res == XvBadExtension) {
+                    std::cout << "XvBadExtension";
+                } else if (res == XvBadAlloc) {
+                    std::cout << "XvBadAlloc";
+                } else {
+                    std::cout << "unknown return code from XvSetPortAttribute";
+                }
+                std::cout << "\n";
+            }
+        }
+    }
+    
+    XFree(attributes);
+    
+    XUnlockDisplay(display);
+    
     // setup capturing thread
     dataCallback = new DataCallback(&image, rawImage, rawImageLength, &frameDrawMutex);
     dataCallback->moveToThread(&dataCallbackThread);
@@ -137,6 +214,7 @@ void RenderingTest::cycleInfoDisplay() {
 
 void RenderingTest::showXvFrame() {
     frameDrawMutex.lock();
+    XLockDisplay(display);
     
     XvImage *xvImage = XvCreateImage(display, grabbedXvPort, FOURCC_UYVY_PLANAR, (char*) rawImage, 1280, 720);
     windowId = winId();
@@ -145,6 +223,10 @@ void RenderingTest::showXvFrame() {
     XFreeGC(display, x11GC);
     XFree(xvImage);
     
+    //XSync(display, False);
+    XFlush(display);
+    
+    XUnlockDisplay(display);
     frameDrawMutex.unlock();
 }
 

@@ -20,11 +20,12 @@ class MainWindow : public QWidget
         void startRecording();
         void stopRecording();
     
+    signals:
+        void fullscreenChanged(bool);
+    
     private:
         RenderingTest *renderingTest;
         QueueingEncoder *encoder;
-        
-        int toggleScreenSaver(bool);
 };
 
 #endif	/* MAINWINDOW_H */

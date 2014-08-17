@@ -14,6 +14,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/XTest.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 
@@ -37,6 +38,7 @@ class RenderingTest : public QWidget
     public slots:
         void showXvFrame();
         void updateDimensions();
+        void toggleScreenKeepAlive(bool);
     
     protected:
         void paintEvent(QPaintEvent *event);
@@ -68,6 +70,11 @@ class RenderingTest : public QWidget
         
         QMutex mutex;
         unsigned char infoDisplayMode;
+        
+        bool screenKeepAliveActive;
+        KeyCode screenKeepAliveKey;
+        unsigned int screenKeepAliveModulo;
+        unsigned int screenKeepAliveCountDown;
         
         void paintInfo(QPainter*, unsigned char);
         void paintStats(QPainter*, ContentType, QueueStats*, EncoderState);

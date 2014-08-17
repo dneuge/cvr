@@ -93,6 +93,12 @@ RenderingTest::RenderingTest(QueueingEncoder *queueingEncoder)
     
     XLockDisplay(display);
     
+    // configure keep alive to avoid screen saver/dimming
+    screenKeepAliveActive = false;
+    screenKeepAliveCountDown = 0;
+    screenKeepAliveModulo = 1200; // 1200 = 20 seconds @ 60 fps, 40 seconds @ 30 fps
+    screenKeepAliveKey = XKeysymToKeycode(display, XK_Shift_L);
+    
     // try to find and set VSync/buffering attributes
     int numAttributes;
     XvAttribute *attributes = XvQueryPortAttributes(display, grabbedXvPort, &numAttributes);
@@ -212,6 +218,17 @@ void RenderingTest::cycleInfoDisplay() {
     emit repaint();
 }
 
+void RenderingTest::toggleScreenKeepAlive(bool active) {
+    // keep alive happens during frame draw so we need to lock the draw mutex
+    frameDrawMutex.lock();
+    
+    std::cout << "screen keep alive changed: " << (active ? "on" : "off") << "\n";
+    screenKeepAliveCountDown = 0; // resets counter
+    screenKeepAliveActive = active;
+    
+    frameDrawMutex.unlock();
+}
+
 void RenderingTest::showXvFrame() {
     frameDrawMutex.lock();
     XLockDisplay(display);
@@ -222,6 +239,16 @@ void RenderingTest::showXvFrame() {
     XvPutImage(display, grabbedXvPort, windowId, x11GC, xvImage, 0, 0, 1280, 720, targetX, targetY, targetWidth, targetHeight);
     XFreeGC(display, x11GC);
     XFree(xvImage);
+    
+    // send key strokes to X server via test extension every n frames to prevent
+    // screen saver and screen dimming from triggering
+    if (screenKeepAliveActive) {
+        screenKeepAliveCountDown = ++screenKeepAliveCountDown % screenKeepAliveModulo;
+        if (screenKeepAliveCountDown == 0) {
+            XTestFakeKeyEvent(display, screenKeepAliveKey, True, 0);
+            XTestFakeKeyEvent(display, screenKeepAliveKey, False, 0);
+        }
+    }
     
     //XSync(display, False);
     XFlush(display);

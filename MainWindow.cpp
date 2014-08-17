@@ -31,6 +31,10 @@ MainWindow::MainWindow(QApplication *application)
     
     resize(1280, 720 + 120);
     
+    // notify RenderingTest about fullscreen state change
+    // screen saver/dimming should be avoided while full screen mode is active
+    connect(this, SIGNAL(fullscreenChanged(bool)), renderingTest, SLOT(toggleScreenKeepAlive(bool)));
+    
     // hot-key SPACE toggles capturing (used to resync)
     QAction *actionToggleCapture = new QAction(this);
     actionToggleCapture->setShortcut(QKeySequence(Qt::Key_Space));
@@ -83,31 +87,6 @@ void MainWindow::stopRecording() {
     encoder->signalEndOfRecording();
 }
 
-int MainWindow::toggleScreenSaver(bool enableScreenSaver) {
-    #define CMD_LINE_LENGTH 256
-    
-    char cmdline[CMD_LINE_LENGTH];
-    
-    // QUESTION: winId changes upon state change; not sure if we can avoid that?
-    if (enableScreenSaver) {
-        snprintf(cmdline, CMD_LINE_LENGTH, "xdg-screensaver resume %lu", winId());
-    } else {
-        snprintf(cmdline, CMD_LINE_LENGTH, "xdg-screensaver suspend %lu", winId());
-    }
-    
-    // terminate string on last byte
-    cmdline[CMD_LINE_LENGTH - 1] = 0;
-    
-    std::cout << "executing: " << cmdline << "\n";
-    
-    int retval = system(cmdline);
-    if (retval != 0) {
-        std::cout << "command failed\n";
-    }
-    
-    return retval;
-}
-
 void MainWindow::toggleFullscreen(bool maximizeInstead) {
     Qt::WindowFlags flags = windowFlags();
     
@@ -118,7 +97,7 @@ void MainWindow::toggleFullscreen(bool maximizeInstead) {
         
         setCursor(Qt::ArrowCursor);
         
-        toggleScreenSaver(true);
+        emit fullscreenChanged(false);
     } else {
         // enable
         flags |= Qt::FramelessWindowHint;
@@ -130,7 +109,7 @@ void MainWindow::toggleFullscreen(bool maximizeInstead) {
         
         setCursor(Qt::BlankCursor);
         
-        toggleScreenSaver(false);
+        emit fullscreenChanged(true);
     }
     
     setWindowFlags(flags);

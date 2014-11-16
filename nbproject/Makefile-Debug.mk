@@ -52,7 +52,7 @@ FFLAGS=
 ASFLAGS=
 
 # Link Libraries and Options
-LDLIBSOPTIONS=`pkg-config --libs xv` `pkg-config --libs libpulse` `pkg-config --libs libpulse-simple` -ljpeg  
+LDLIBSOPTIONS=`pkg-config --libs xv` `pkg-config --libs libpulse` `pkg-config --libs libpulse-simple` -ljpeg `pkg-config --libs x11` -ldl  `pkg-config --libs xtst`  
 
 nbproject/qt-${CND_CONF}.mk: nbproject/qt-${CND_CONF}.pro FORCE
 	${QMAKE} VPATH=. -o qttmp-${CND_CONF}.mk nbproject/qt-${CND_CONF}.pro

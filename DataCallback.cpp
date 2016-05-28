@@ -96,6 +96,25 @@ DataCallback::DataCallback(QImage** image, unsigned char *rawImage, unsigned lon
         return;
     }
     
+    /*
+    // try to disable any previous capture
+    if (deckLinkInput->DisableVideoInput() != S_OK) {
+        std::cout << "pre: could not disable video input\n";
+    }
+    if (deckLinkInput->DisableAudioInput() != S_OK) {
+        std::cout << "pre: could not disable audio input\n";
+    }
+    if (deckLinkInput->FlushStreams() != S_OK) {
+        std::cout << "pre: could not flush streams before stop\n";
+    }
+    if (deckLinkInput->StopStreams() != S_OK) {
+        std::cout << "pre: could not stop streams\n";
+    }
+    if (deckLinkInput->FlushStreams() != S_OK) {
+        std::cout << "pre: could not flush streams after stop\n";
+    }
+    */
+    
     // register ourselves as receiver
     deckLinkInput->SetCallback(this);
     

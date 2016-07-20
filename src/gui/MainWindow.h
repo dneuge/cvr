@@ -3,8 +3,9 @@
 
 #include <QWidget>
 
+#include "encoder/QueueingEncoder.h"
+
 #include "RenderingTest.h"
-#include "QueueingEncoder.h"
 
 class MainWindow : public QWidget
 {

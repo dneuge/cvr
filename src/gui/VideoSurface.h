@@ -13,7 +13,7 @@
 #include <QAbstractVideoSurface>
 #include <QVideoSurfaceFormat>
 
-#include "DataCallback.h"
+#include "link/DataCallback.h"
 
 class VideoSurface : public QAbstractVideoSurface
 {

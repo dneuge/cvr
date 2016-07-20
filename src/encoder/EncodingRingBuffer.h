@@ -6,7 +6,8 @@
 #include <QObject>
 #include <QMutex>
 
-#include "TimedPacket.h"
+#include "link/TimedPacket.h"
+
 #include "QueueStats.h"
 
 class EncodingRingBuffer : public QObject {

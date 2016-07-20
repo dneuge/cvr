@@ -18,10 +18,11 @@
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 
-#include "DataCallback.h"
+#include "encoder/QueueingEncoder.h"
+#include "link/DataCallback.h"
+#include "sound/PulseAudioSink.h"
+
 #include "VideoSurface.h"
-#include "PulseAudioSink.h"
-#include "QueueingEncoder.h"
 
 // see: http://www.fourcc.org/yuv.php
 #define FOURCC_UYVY_PLANAR 0x59565955

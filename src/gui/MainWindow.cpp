@@ -7,8 +7,8 @@
 #include <QAction>
 #include <QKeySequence>
 
-#include "DummyReceptionCallback.h"
-#include "QueueingEncoder.h"
+#include "encoder/QueueingEncoder.h"
+#include "link/DummyReceptionCallback.h"
 
 MainWindow::MainWindow(QApplication *application)
 {

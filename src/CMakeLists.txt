@@ -1,25 +1,25 @@
 configure_file(
-    "include_DeckLinkAPIDispatch.cpp.in"
-    "include_DeckLinkAPIDispatch.cpp"
+    "link/include_DeckLinkAPIDispatch.cpp.in"
+    "link/include_DeckLinkAPIDispatch.cpp"
 )
 
 set(SOURCES
-    DataCallback.cpp
-    DummyReceptionCallback.cpp
-    EBMLElement.cpp
-    EBMLTreeNode.cpp
-    EncodingRingBuffer.cpp
-    JPEGEncoder.cpp
-    MainWindow.cpp
-    MatroskaCuePoint.cpp
-    MatroskaElementDefinitions.cpp
-    MatroskaEncoder.cpp
-    MuxFeeder.cpp
-    PulseAudioSink.cpp
-    QueueingEncoder.cpp
-    RenderingTest.cpp
-    TimedPacket.cpp
-    VideoSurface.cpp
+    encoder/EBMLElement.cpp
+    encoder/EBMLTreeNode.cpp
+    encoder/EncodingRingBuffer.cpp
+    encoder/JPEGEncoder.cpp
+    encoder/MatroskaCuePoint.cpp
+    encoder/MatroskaElementDefinitions.cpp
+    encoder/MatroskaEncoder.cpp
+    encoder/MuxFeeder.cpp
+    encoder/QueueingEncoder.cpp
+    gui/MainWindow.cpp
+    gui/RenderingTest.cpp
+    gui/VideoSurface.cpp
+    link/DataCallback.cpp
+    link/DummyReceptionCallback.cpp
+    link/TimedPacket.cpp
+    sound/PulseAudioSink.cpp
 )
 
 add_library(cvr_lib STATIC ${SOURCES})

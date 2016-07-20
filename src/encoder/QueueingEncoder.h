@@ -6,9 +6,10 @@
 
 #include <QObject>
 
+#include "link/DelayedReceptionCallback.h"
+#include "link/TimedPacket.h"
+
 #include "JPEGEncoder.h"
-#include "TimedPacket.h"
-#include "DelayedReceptionCallback.h"
 #include "EncodingRingBuffer.h"
 #include "MuxFeeder.h"
 

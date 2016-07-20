@@ -6,7 +6,8 @@
 #include "TimedPacket.h"
 
 // FIXME: that is very dirty but how else can we tell NetBeans to include that file? unfortunately it's not a lib
-#include "../../Downloads/Blackmagic DeckLink SDK 9.7.7/Linux/include/DeckLinkAPIDispatch.cpp"
+// #include "../../Downloads/Blackmagic DeckLink SDK 9.7.7/Linux/include/DeckLinkAPIDispatch.cpp"
+#include "include_DeckLinkAPIDispatch.cpp"
 
 inline unsigned char clampRGB(int x)
 {

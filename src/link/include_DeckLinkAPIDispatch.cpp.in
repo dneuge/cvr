@@ -1,1 +1,1 @@
-#include "@DECKLINK_INCLUDE_DIRS@/DeckLinkAPIDispatch.cpp"
+#include "@DECKLINK_INCLUDE_DIR@/DeckLinkAPIDispatch.cpp"

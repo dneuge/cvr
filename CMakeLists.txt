@@ -24,7 +24,7 @@ include_directories(${X11_X11_INCLUDE_PATH})
 
 find_package(JPEG REQUIRED)
 
-find_path(DECKLINK_INCLUDE_DIRS NAMES include/DeckLinkAPI.h)
-include_directories(${DECKLINK_INCLUDE_DIRS})
+find_path(DECKLINK_INCLUDE_DIR NAMES DeckLinkAPI.h PATHS /usr/include/*)
+include_directories(${DECKLINK_INCLUDE_DIR})
 
 add_subdirectory(src)

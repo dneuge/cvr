@@ -33,9 +33,24 @@ For more details, please see the issue tracker.
 
 MIT license for own code, may degrade to restrictive licenses on compilation.
 
+## How to build
+
+To build CVR you will additionally need CMake 3.3 or above.
+
+If you're on Gentoo and used the ebuilds linked above, compilation should be as easy as running `build.sh` which performs all configuration and compiles a single binary `build/src/cvr`.
+
+Even if you're not, CMake *should* still be able to find everything automatically if the SDK has been installed to `/usr/include` or a subdirectory. If that fails, unzip the SDK somewhere and provide CMake with the path manually using `-DDECKLINK_INCLUDE_DIR=...`. Altogether:
+
+<pre>
+mkdir build
+cd build
+cmake .. -DDECKLINK_INCLUDE_DIR="/where/ever/the/includes/are"
+make
+</pre>
+
 ## Why no precompiled binaries?
 
-Only me as a single user up to publication in July 2016, not polished enough to provide it ready-to-run to end-users yet, sorry... The bare minimum to implement before thinking about binaries would be a configuration screen to provide users a way to switch resolutions without any hacking of hard-coded constants.
+Only me as a single user up to publication in July 2016 and the program is not polished enough to provide it ready-to-run to end-users yet, sorry... The bare minimum to implement before thinking about binaries would be a configuration screen to provide users a way to switch resolutions without any hacking of hard-coded constants.
 
 ## Why such a late publication?
 

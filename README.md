@@ -9,8 +9,8 @@ The intent to write CVR was to be able to connect video game consoles via HDMI b
 To use CVR, you currently need:
 
 * Linux
-* a capture card by [Blackmagic Design](http://www.blackmagicdesign.com/) which is supported by their [Decklink SDK](http://www.blackmagicdesign.com/support/sdks)
-* the Decklink SDK for compilation, plus drivers for your capture card (if you are on Gentoo, check out media-libs/blackmagic-desktop-video from [our overlay](http://gentoo-overlay.megacoffee.net/) for just the runtime library & kernel module)
+* a capture card by [Blackmagic Design](http://www.blackmagicdesign.com/) which is supported by their Desktop Video SDK (also known as Decklink SDK)
+* the Desktop Video SDK for compilation, plus drivers for your capture card (if you are on Gentoo, emerge `media-libs/blackmagic-desktop-video` and `media-libs/blackmagic-desktop-video-sdk` via [MegaCoffee overlay](http://gentoo-overlay.megacoffee.net/))
 * PulseAudio
 * Qt 4.8
 * a video card that supports XVideo in UYVY pixel mode
@@ -22,6 +22,7 @@ CVR is in very early development. Since it's only done by one developer with jus
 What works so far:
 * live, low-latency playback of AV through XVideo and PulseAudio
 * recording (simple & time-shifted)
+  * "Motion JPEG" (basically, just full JPEG images per frame) stored in a Matroska (MKV) container, variable frame-rate; still not widely supported in 2016 but you will likely convert/recode recorded files using FFMPEG anyway which is the only program which seems to be able to reliably process that format
 
 Current restrictions:
 * hard-coded input format 720p59.94 (suitable for Microsoft's Xbox 360 and Xbox One), no configuration available yet (but planned)
@@ -34,16 +35,20 @@ MIT license for own code, may degrade to restrictive licenses on compilation.
 
 ## Why no precompiled binaries?
 
-Due to unresolved questions regarding SDK licensing, you currently need to build CVR yourself.
+Only me as a single user up to publication in July 2016, not polished enough to provide it ready-to-run to end-users yet, sorry... The bare minimum to implement before thinking about binaries would be a configuration screen to provide users a way to switch resolutions without any hacking of hard-coded constants.
+
+## Why such a late publication?
+
+I started writing CVR in November 2013 and had everything I immediately needed complete at the beginning of January 2014. I planned to release the code earlier but wasn't comfortable with the way terms & conditions in the SDK's license were stated formally (not sure if creating applications solely for Blackmagic products was permitted use). That has changed since then (or my understanding has, not sure which one :) ) and so I finally went public in July 2016.
 
 ## Tested hardware
 
 The following setup is currently verified to work:
 
-* Intel Core2Duo 3,0GHz
-* Nvidia GeForce 8800GT, Nvidia GeForce GTX 750 Ti
-* Gentoo Linux 64 Bit
-* Blackmagic Design Intensity Pro (others from Blackmagic Design should work as well thanks to the universal SDK)
+* **CPU:** Intel i7-4790K (very low CPU usage), Intel Core2Duo 3.0GHz
+* **GPU:** Nvidia GeForce GTX 750 Ti, Nvidia GeForce 8800GT
+* **OS:** Gentoo Linux 64 Bit
+* **Capture card:** Blackmagic Design Intensity Pro via PCIe (others from Blackmagic Design should work as well thanks to the universal SDK)
 
 ## A quick note on buying a capture card (for game consoles)
 

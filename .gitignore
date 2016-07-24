@@ -13,3 +13,9 @@ nbproject/
 testdata/
 *.mkv
 build/
+
+Makefile
+src/cvr
+*_automoc.cpp
+include_DeckLinkAPIDispatch.cpp
+CMakeFiles

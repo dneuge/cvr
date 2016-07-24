@@ -6,7 +6,7 @@ The Matroska container format (DocType version 2) was chosen because it has been
 
 ## Stages of processing
 
-!cvr-queue.png!
+![CVR queue overview](cvr-queue.png)
 
 First, raw video frames (with each nth frame discarded if frame rate reduction is active) and audio packets are assigned the timecode they were received from the capture SDK (accurate to milliseconds) and an incrementing index number. They are then cached in two separate ring buffers (one for audio and one for video). While audio packets can be muxed directly later on, video frames need to be compressed early, even for timeshifted recordings, since raw input of 720p60 video requires approximately 100MB/s to store which obviously is too much to keep around for a longer period of time. If encoding is too slow, this will be the most likely source of frame drops taking place. A configurable amount of worker threads fetches those raw images, converts color space from UYVY to RGB and compresses the resulting image to JPEG. Those results are then added ordered by the index number to a separate ring buffer for muxing. 
 

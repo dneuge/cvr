@@ -1,0 +1,15 @@
+*.orig
+*.orig.*
+*.chg.*
+*.rej
+*.conflict~
+*.out
+*~
+moc*.cpp
+*.o
+dist/
+*.dep.inc
+nbproject/
+testdata/
+*.mkv
+build/
